@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LexiFlow</title>
+<meta name="description" content="Read English with a natural voice and word-by-word highlighting.">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* One calm reading column, a quiet top bar, and a fixed player under the text. */
+:root{
+  --bg:#F6F6F4; --card:#FFFFFF; --text:#1C1C1C; --muted:#6B6B6B;
+  --line:rgba(28,28,40,.10); --accent:#4352C4; --bad:#B4483F; --ok:#2E7D4F;
+  --seg:rgba(28,28,60,.045); --word:rgba(80,100,255,.24);
+  --ui:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --read:"Literata","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111111; --card:#1C1C1C; --text:#F2F2F2; --muted:#9A9A9A;
+    --line:rgba(235,235,255,.11); --accent:#98A4FF; --bad:#E58B82; --ok:#7CCB98;
+    --seg:rgba(235,235,255,.05); --word:rgba(120,140,255,.40);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111111; --card:#1C1C1C; --text:#F2F2F2; --muted:#9A9A9A;
+  --line:rgba(235,235,255,.11); --accent:#98A4FF; --bad:#E58B82; --ok:#7CCB98;
+  --seg:rgba(235,235,255,.05); --word:rgba(120,140,255,.40);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none !important}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;padding-top:max(14px,env(safe-area-inset-top));border-bottom:1px solid var(--line)}
+.brand{background:none;border:0;padding:4px 2px;font-weight:700;font-size:18px;letter-spacing:-.01em}
+.ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:14px;font-weight:600}
+.ghost:hover{border-color:var(--muted)}
+.primary{background:var(--accent);color:var(--bg);border:0;border-radius:8px;padding:10px 16px;font-weight:700}
+.primary:hover{filter:brightness(1.08)}
+.linkbtn{background:none;border:0;padding:4px 0;color:var(--muted);font-size:14px;font-weight:600}
+.linkbtn:hover{color:var(--text)}
+
+main{max-width:720px;margin:0 auto;padding:28px 20px 40px}
+h1{font-size:24px;line-height:1.25;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2.label{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:700}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:14px}
+.gap-lg{gap:30px}
+.muted{color:var(--muted)}
+.small{font-size:13px;margin:0}
+.acts{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.card.col{flex-direction:column;align-items:stretch}
+.card .title{font-family:var(--read);font-size:19px;font-weight:600;line-height:1.3}
+.card .meta{font-size:13px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.card .actions{display:flex;align-items:center;gap:14px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-left:8px;vertical-align:middle;font-family:var(--ui)}
+.mini{height:3px;background:var(--line);border-radius:2px;margin-top:8px;width:160px;max-width:100%;overflow:hidden}
+.mini i{display:block;height:100%;background:var(--accent)}
+
+label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}
+.field input,.field textarea,.field select{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--text);font-weight:500;width:100%}
+.field textarea{min-height:260px;resize:vertical;font-family:var(--read);font-size:17px;line-height:1.6}
+.check{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.check input{width:17px;height:17px;accent-color:var(--accent)}
+.two{display:flex;gap:12px;flex-wrap:wrap}
+.two>label{flex:1 1 200px}
+.msg{font-size:14px;font-weight:600;min-height:1.3em;margin:0}
+.msg.bad{color:var(--bad)} .msg.ok{color:var(--ok)}
+
+.readhead{display:flex;flex-direction:column;gap:8px;margin-bottom:26px}
+.prog{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.track{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.track i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s ease}
+
+article{font-family:var(--read);font-size:20px;line-height:1.78;max-width:34em;padding-bottom:220px}
+article h1{font-family:var(--read);font-size:30px;line-height:1.25;margin:0 0 6px;font-weight:600}
+article h2{font-family:var(--read);font-size:20px;line-height:1.45;margin:0 0 26px;font-weight:400;color:var(--muted);text-wrap:balance}
+article p{margin:0 0 1.15em}
+article h1+p{margin-top:22px}
+.seg{border-radius:5px;cursor:pointer;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.seg.as{background:var(--seg)}
+.w{border-radius:4px;padding:1px 2px;margin:0 -2px}
+.w.on{background:var(--word)}
+
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
+.bar .in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.ctl{display:flex;align-items:center;gap:10px}
+.ctl .play{min-width:96px}
+.ctl select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:14px;font-weight:600;margin-left:auto}
+.status{font-size:13px;color:var(--muted);min-height:1.3em;margin:0}
+.status.bad{color:var(--bad);font-weight:600}
+@media (max-width:480px){ article{font-size:18px} main{padding-top:22px} }
+@media (prefers-reduced-motion:reduce){*{transition:none !important;scroll-behavior:auto !important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="brand" id="brand" type="button">LexiFlow</button>
+  <button class="ghost" id="settingsBtn" type="button">Settings</button>
+</header>
+
+<main>
+  <section id="home" class="stack gap-lg"></section>
+
+  <section id="editor" class="stack" hidden>
+    <div class="row"><h1 id="editHead">New reading</h1><button class="linkbtn" id="cancelEdit" type="button">Cancel</button></div>
+    <label class="field" for="docTitle">Title
+      <input id="docTitle" type="text" autocomplete="off" placeholder="Optional. The first line is used if you leave this empty.">
+    </label>
+    <label class="field" for="docSub">Subtitle
+      <input id="docSub" type="text" autocomplete="off" placeholder="Optional. Shown under the title.">
+    </label>
+    <label class="field" for="docText">Text
+      <textarea id="docText" placeholder="Paste something you are reading. A blank line starts a new paragraph."></textarea>
+    </label>
+    <p class="msg bad" id="editErr" role="alert"></p>
+    <div><button class="primary" id="saveDoc" type="button">Save and read</button></div>
+  </section>
+
+  <section id="reader" hidden>
+    <div class="readhead">
+      <div class="row">
+        <span class="acts">
+          <button class="linkbtn" id="back" type="button">&larr; Library</button>
+          <button class="linkbtn" id="editCur" type="button">Edit text</button>
+          <button class="linkbtn" id="offlineBtn" type="button">Save offline</button>
+        </span>
+        <span class="prog" id="progText"></span>
+      </div>
+      <div class="track"><i id="progFill"></i></div>
+    </div>
+    <article id="page"></article>
+  </section>
+
+  <section id="settings" class="stack gap-lg" hidden>
+    <div class="row"><h1>Settings</h1><button class="linkbtn" id="closeSettings" type="button">Done</button></div>
+
+    <div class="stack">
+      <h2 class="label">Voice (Azure Speech)</h2>
+      <div class="two">
+        <label class="field" for="azKey">Key
+          <input id="azKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste KEY 1 of your Speech resource">
+        </label>
+        <label class="field" for="azRegion">Region
+          <input id="azRegion" type="text" autocomplete="off" spellcheck="false" placeholder="eastus">
+        </label>
+      </div>
+      <label class="field" for="voiceSel">Voice
+        <select id="voiceSel">
+          <option value="en-US-AvaMultilingualNeural">Ava (US, female)</option>
+          <option value="en-US-AndrewMultilingualNeural">Andrew (US, male)</option>
+          <option value="en-US-EmmaMultilingualNeural">Emma (US, female)</option>
+          <option value="en-US-BrianMultilingualNeural">Brian (US, male)</option>
+          <option value="en-US-JennyNeural">Jenny (US, female)</option>
+          <option value="en-US-GuyNeural">Guy (US, male)</option>
+          <option value="en-GB-SoniaNeural">Sonia (UK, female)</option>
+          <option value="en-GB-RyanNeural">Ryan (UK, male)</option>
+          <option value="custom">Other (type the name)</option>
+        </select>
+      </label>
+      <label class="field" for="voiceCustom" id="voiceCustomWrap" hidden>Exact voice name
+        <input id="voiceCustom" type="text" autocomplete="off" spellcheck="false" placeholder="en-US-AriaNeural">
+      </label>
+      <div class="acts">
+        <button class="primary" id="saveVoice" type="button">Save</button>
+        <button class="ghost" id="testVoice" type="button">Test voice</button>
+      </div>
+      <p class="msg" id="voiceMsg" role="status"></p>
+      <p class="muted small">Your key stays in this browser and is only sent to Microsoft Azure. Each paragraph is generated once and saved on this device, so reading it again costs nothing and works offline.</p>
+    </div>
+
+    <div class="stack">
+      <h2 class="label">Reading</h2>
+      <label class="check" for="autoflow"><input id="autoflow" type="checkbox"> Keep the current word in view</label>
+      <label class="field" for="themeSel">Theme
+        <select id="themeSel">
+          <option value="system">Same as device</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="stack">
+      <h2 class="label">Usage on this device</h2>
+      <p class="small" id="usageText"></p>
+      <p class="small" id="cacheText"></p>
+      <div class="acts"><button class="ghost" id="clearAudio" type="button">Delete saved audio</button></div>
+    </div>
+
+    <div class="stack">
+      <h2 class="label">Move your library</h2>
+      <p class="muted small">Readings live on each device. Export a file here and import it on your other device.</p>
+      <div class="acts">
+        <button class="ghost" id="exportBtn" type="button">Export library</button>
+        <button class="ghost" id="importBtn" type="button">Import library</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+      </div>
+      <p class="msg" id="libMsg" role="status"></p>
+    </div>
+    <p class="muted small" id="version"></p>
+  </section>
+</main>
+
+<div class="bar" id="bar" hidden>
+  <div class="in">
+    <div class="ctl">
+      <button class="ghost" id="prev" type="button" aria-label="Previous part">&larr;</button>
+      <button class="primary play" id="playBtn" type="button">Play</button>
+      <button class="ghost" id="next" type="button" aria-label="Next part">&rarr;</button>
+      <select id="rate" aria-label="Speed">
+        <option value="0.7">0.7x</option><option value="0.8">0.8x</option><option value="0.9">0.9x</option>
+        <option value="1">1.0x</option><option value="1.1">1.1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option>
+      </select>
+    </div>
+    <p class="status" id="note" role="status"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const VERSION='1.0.0';
+
+/* ================= pure logic (also loaded by the tests in Node) ================= */
+const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
+function splitSentences(t){
+  const parts=t.match(/[^.!?…]+(?:[.!?…]+["”’')\]]*|$)/g)||[];
+  const out=[];let buf='';
+  for(let i=0;i<parts.length;i++){
+    buf+=parts[i];
+    const more=i<parts.length-1;
+    if(more&&ABBR.test(buf))continue;
+    if(more&&!/^\s/.test(parts[i+1]))continue; /* no space after the mark: 3.5, e.g., U.S. */
+    const s=buf.trim();if(s)out.push(s);buf='';
+  }
+  if(buf.trim())out.push(buf.trim());
+  return out;
+}
+function parseDoc(raw){
+  const chunks=String(raw).replace(/\r\n?/g,'\n').split(/\n\s*\n/),blocks=[];let hadHeading=false;
+  chunks.forEach(chunk=>{
+    const single=chunk.trim().indexOf('\n')===-1;
+    let text=chunk.replace(/\s*\n\s*/g,' ').replace(/[ \t]+/g,' ').trim();
+    if(!text)return;
+    let type='paragraph';const idx=blocks.length;
+    if(/^##\s+/.test(text)){type='subheading';text=text.replace(/^##\s+/,'')}
+    else if(/^#\s+/.test(text)){type='heading';text=text.replace(/^#\s+/,'')}
+    else if(idx===0&&single&&text.length<=100&&!/[.!?]$/.test(text))type='heading';
+    else if(idx===1&&hadHeading&&single&&text.length<=140&&!/[.!?]["”]?(\s|$)/.test(text))type='subheading';
+    if(type==='heading')hadHeading=true;
+    blocks.push({type,sentences:type==='paragraph'?splitSentences(text):[text]});
+  });
+  return blocks;
+}
+/* Long paragraphs are split into parts of whole sentences, one audio file per part. */
+const PART_MAX=1200;
+function groupSentences(sentences){
+  const parts=[];let cur='';
+  sentences.forEach(s=>{
+    if(cur&&(cur.length+1+s.length)>PART_MAX){parts.push(cur);cur=s}
+    else cur=cur?cur+' '+s:s;
+  });
+  if(cur)parts.push(cur);
+  return parts;
+}
+/* Place each word Azure reports inside the original text (its offsets can drift with symbols). */
+function locate(text,events){
+  let cursor=0,missed=0;const words=[];
+  for(const ev of events){
+    if(ev.type&&ev.type!=='WordBoundary')continue;
+    if(!ev.text)continue;
+    let s=-1;
+    if(typeof ev.off==='number'&&ev.off>=cursor&&text.substr(ev.off,ev.text.length)===ev.text)s=ev.off;
+    if(s<0){const j=text.indexOf(ev.text,cursor);if(j>=0&&j-cursor<200)s=j}
+    if(s<0){missed++;continue}
+    cursor=s+ev.text.length;
+    words.push({s,e:cursor,ms:ev.ms});
+  }
+  return {words,missed};
+}
+/* Index of the last word that has started at time ms; -1 before the first. */
+function wordAt(words,ms){
+  let lo=0,hi=words.length-1,ans=-1;
+  while(lo<=hi){const mid=(lo+hi)>>1;if(words[mid].ms<=ms){ans=mid;lo=mid+1}else hi=mid-1}
+  return ans;
+}
+function hash(str){ /* cyrb53 */
+  let h1=0xdeadbeef,h2=0x41c6ce57;
+  for(let i=0;i<str.length;i++){const c=str.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36);
+}
+function audioKey(voice,text){return 'a1:'+voice+':'+text.length+':'+hash(voice+'\u0000'+text)}
+if(typeof module!=='undefined'&&module.exports){module.exports={splitSentences,parseDoc,groupSentences,locate,wordAt,audioKey};return}
+
+/* ================= app ================= */
+const $=id=>document.getElementById(id);
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
+const mem={};
+function load(k,d){try{const v=localStorage.getItem(k);if(v!=null)return JSON.parse(v)}catch(e){}return (k in mem)?mem[k]:d}
+function save(k,v){mem[k]=v;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+const SAMPLE=[
+'Small Steps, Clear Mind',
+'Why reading a little every day works',
+'Most people wait for the perfect moment to begin. They want more time, more energy, and a better plan. The perfect moment rarely arrives, so the work never starts.',
+'A small step is different. It asks for ten minutes, not a whole afternoon. You read one page, you listen to one paragraph, and you stop before it feels heavy.',
+'Over time, the pages add up. Words that once looked strange begin to feel familiar. As one teacher liked to say, “You do not need to understand everything today. You only need to come back tomorrow.”'
+].join('\n\n');
+
+const settings=Object.assign({rate:1,autoflow:true,theme:'system',voice:'en-US-AvaMultilingualNeural'},load('lexiflow.settings',{})||{});
+const azure=Object.assign({key:'',region:'eastus'},load('lexiflow.azure',{})||{});
+let docs=load('lexiflow.docs',null);
+if(!Array.isArray(docs))docs=[{id:'sample',title:'Small Steps, Clear Mind',raw:SAMPLE,sample:true,bi:0,ms:0,nb:0,updatedAt:0}];
+const saveDocs=()=>save('lexiflow.docs',docs);
+const saveSettings=()=>save('lexiflow.settings',settings);
+const hasKey=()=>!!(azure.key&&azure.region);
+function applyTheme(){
+  const r=document.documentElement;
+  if(settings.theme==='light'||settings.theme==='dark')r.setAttribute('data-theme',settings.theme);else r.removeAttribute('data-theme');
+}
+applyTheme();
+
+/* ---------- usage counter (this device only; Azure's own count is the real one) ---------- */
+function monthKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)}
+function addUsage(n){const u=load('lexiflow.usage',{});if(u.month!==monthKey()){u.month=monthKey();u.chars=0}u.chars+=n;save('lexiflow.usage',u)}
+function usage(){const u=load('lexiflow.usage',{});return u.month===monthKey()?u.chars:0}
+
+/* ---------- saved audio: IndexedDB ---------- */
+let dbp=null;
+function db(){
+  if(!dbp)dbp=new Promise((res,rej)=>{
+    const r=indexedDB.open('lexiflow',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('audio',{keyPath:'k'});
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+  });
+  return dbp;
+}
+function tx(mode,fn){
+  return db().then(d=>new Promise((res,rej)=>{
+    const t=d.transaction('audio',mode),st=t.objectStore('audio');let out;
+    const q=fn(st);if(q)q.onsuccess=()=>{out=q.result};
+    t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);
+  }));
+}
+const idbGet=k=>tx('readonly',st=>st.get(k)).catch(()=>null);
+const idbPut=v=>tx('readwrite',st=>st.put(v)).catch(()=>null);
+const idbClear=()=>tx('readwrite',st=>st.clear());
+function idbStats(){
+  return db().then(d=>new Promise(res=>{
+    let n=0,bytes=0;const c=d.transaction('audio').objectStore('audio').openCursor();
+    c.onsuccess=()=>{const cur=c.result;if(cur){n++;bytes+=(cur.value.blob&&cur.value.blob.size)||0;cur.continue()}else res({n,bytes})};
+    c.onerror=()=>res({n,bytes});
+  })).catch(()=>({n:0,bytes:0}));
+}
+
+/* ---------- Azure synthesis ---------- */
+let sdkP=null;
+function loadSdk(){
+  if(window.SpeechSDK)return Promise.resolve();
+  if(!sdkP)sdkP=new Promise((res,rej)=>{
+    const s=document.createElement('script');s.src='speech-sdk.js';s.async=true;
+    s.onload=()=>res();s.onerror=()=>{sdkP=null;rej(fail('net','Could not load the voice engine. Check your connection.'))};
+    document.head.appendChild(s);
+  });
+  return sdkP;
+}
+function fail(kind,message){const e=new Error(message);e.kind=kind;return e}
+function explain(details){
+  const d=String(details||'');
+  if(/401|Unauthorized|authentication|Forbidden|403/i.test(d))return fail('key','Azure rejected the key. Check the key and region in Settings.');
+  if(/quota|429|Too Many|throttl/i.test(d))return fail('rate','Azure is busy or the free monthly quota is used up. Try again in a minute.');
+  if(/voice|Unsupported|400/i.test(d))return fail('voice','Azure did not accept that voice in your region. Pick another in Settings.');
+  if(/1006|websocket|connect|network|timeout|offline/i.test(d))return fail('net','No connection with Azure. Check your internet and try again.');
+  return fail('other','Azure returned an error: '+d.slice(0,140));
+}
+function voiceName(){return settings.voice||'en-US-AvaMultilingualNeural'}
+async function synthesize(text,voice){
+  if(!navigator.onLine)throw fail('net','You are offline. This part has not been saved yet.');
+  await loadSdk();
+  return new Promise((resolve,reject)=>{
+    const events=[];let synth,done=false;
+    const finish=(fn,v)=>{if(done)return;done=true;try{synth&&synth.close()}catch(e){}fn(v)};
+    try{
+      const cfg=SpeechSDK.SpeechConfig.fromSubscription(azure.key,azure.region);
+      cfg.speechSynthesisVoiceName=voice;
+      cfg.speechSynthesisOutputFormat=SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3;
+      synth=new SpeechSDK.SpeechSynthesizer(cfg,null);
+      synth.wordBoundary=(s,e)=>{events.push({text:e.text,ms:e.audioOffset/10000,off:e.textOffset,type:e.boundaryType})};
+      synth.speakTextAsync(text,result=>{
+        if(result.reason!==SpeechSDK.ResultReason.SynthesizingAudioCompleted||!result.audioData||!result.audioData.byteLength){
+          finish(reject,explain(result.errorDetails));return;
+        }
+        addUsage(text.length);
+        finish(resolve,{blob:new Blob([result.audioData],{type:'audio/mpeg'}),words:locate(text,events).words});
+      },err=>finish(reject,explain(err)));
+      setTimeout(()=>finish(reject,explain('timeout')),60000);
+    }catch(err){finish(reject,fail('other','Could not start the voice: '+(err&&err.message||err)))}
+  });
+}
+/* Azure's free tier allows one request at a time, so every request waits its turn. */
+let chain=Promise.resolve();
+const inflight=new Map();
+function queued(fn){const r=chain.then(fn,fn);chain=r.catch(()=>{});return r}
+async function synthWithRetry(text,voice){
+  try{return await synthesize(text,voice)}
+  catch(e){
+    if(e.kind!=='rate'&&e.kind!=='net')throw e;
+    await new Promise(r=>setTimeout(r,4000));
+    return synthesize(text,voice);
+  }
+}
+function getAudio(text,voice){
+  const k=audioKey(voice,text);
+  if(inflight.has(k))return inflight.get(k);
+  const p=(async()=>{
+    const hit=await idbGet(k);
+    if(hit&&hit.blob&&hit.words)return hit;
+    if(!hasKey())throw fail('nokey','Add your Azure key in Settings to hear this.');
+    const res=await queued(()=>synthWithRetry(text,voice));
+    const rec={k,blob:res.blob,words:res.words,voice,chars:text.length,at:Date.now()};
+    await idbPut(rec);
+    return rec;
+  })();
+  inflight.set(k,p);
+  p.then(()=>inflight.delete(k),()=>inflight.delete(k));
+  return p;
+}
+
+/* ---------- views ---------- */
+const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let view='home';
+function show(name){
+  if(view==='reader'&&name!=='reader'){pauseAudio();savePos()}
+  view=name;
+  ['home','editor','reader','settings'].forEach(n=>{$(n).hidden=n!==name});
+  $('bar').hidden=name!=='reader';
+  $('settingsBtn').hidden=name==='settings';
+  window.scrollTo(0,0);
+}
+function pct(d){return d.nb?Math.round(Math.min(d.nb,(d.bi||0)+(d.done?1:0))/d.nb*100):0}
+function docCard(d,primary){
+  const c=el('div','card'),left=el('div'),t=el('div','title',d.title);
+  if(d.sample)t.appendChild(el('span','tag','Sample'));
+  left.appendChild(t);
+  left.appendChild(el('div','meta',d.done?'Finished':d.nb?('Part '+Math.min(d.nb,(d.bi||0)+1)+' of '+d.nb):'Not started'));
+  const mini=el('div','mini'),fill=el('i');fill.style.width=pct(d)+'%';mini.appendChild(fill);left.appendChild(mini);
+  const act=el('div','actions');
+  const rm=el('button','linkbtn','Remove');rm.type='button';
+  rm.addEventListener('click',()=>{
+    if(rm.dataset.sure){docs=docs.filter(x=>x.id!==d.id);saveDocs();renderHome()}
+    else{rm.dataset.sure='1';rm.textContent='Remove this reading?'}
+  });
+  const ed=el('button','linkbtn','Edit');ed.type='button';ed.addEventListener('click',()=>editReading(d.id));
+  const open=el('button',primary?'primary':'ghost',primary?'Continue':'Open');open.type='button';
+  open.addEventListener('click',()=>openDoc(d.id));
+  act.append(rm,ed,open);
+  c.append(left,act);
+  return c;
+}
+function renderHome(){
+  const h=$('home');h.textContent='';
+  if(!hasKey()){
+    const c=el('div','card col');
+    c.appendChild(el('div','title','Connect the voice'));
+    c.appendChild(el('p','muted small','LexiFlow reads with Azure Speech. Paste your key once in Settings and you are ready.'));
+    const b=el('button','primary','Open Settings');b.type='button';b.style.alignSelf='flex-start';b.addEventListener('click',openSettings);
+    c.appendChild(b);h.appendChild(c);
+  }
+  const head=el('div','row');head.appendChild(el('h1',null,docs.length?'Your readings':'Start your first reading.'));
+  const nb=el('button','primary','+ New Reading');nb.type='button';nb.addEventListener('click',newReading);head.appendChild(nb);
+  h.appendChild(head);
+  if(!docs.length){h.appendChild(el('p','muted','Paste something you are reading. LexiFlow reads it aloud, highlights each word and keeps your place.'));return}
+  const sorted=docs.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const s1=el('div','stack');s1.append(el('h2','label','Continue'),docCard(sorted[0],true));h.appendChild(s1);
+  if(sorted.length>1){
+    const s2=el('div','stack');s2.appendChild(el('h2','label','Your library'));
+    sorted.slice(1).forEach(d=>s2.appendChild(docCard(d,false)));
+    h.appendChild(s2);
+  }
+}
+let editingId=null;
+const findDoc=id=>docs.find(x=>x.id===id)||null;
+function newReading(){
+  editingId=null;$('editHead').textContent='New reading';$('saveDoc').textContent='Save and read';
+  $('docTitle').value='';$('docSub').value='';$('docText').value='';$('editErr').textContent='';show('editor');$('docText').focus();
+}
+function editReading(id){
+  const d=findDoc(id);if(!d)return;
+  editingId=id;$('editHead').textContent='Edit reading';$('saveDoc').textContent='Save changes';
+  $('docTitle').value=d.title;$('docSub').value=d.sub||'';$('docText').value=d.raw;$('editErr').textContent='';show('editor');$('docText').focus();
+}
+function saveReading(){
+  const raw=$('docText').value.trim();
+  if(!raw){$('editErr').textContent='Paste or write some text first.';return}
+  const auto=raw.split('\n')[0].replace(/^#+\s*/,'').slice(0,70),typed=$('docTitle').value.trim();
+  const title=typed||auto,custom=!!typed&&typed!==auto;
+  let d=editingId?findDoc(editingId):null;
+  if(d){
+    const changed=d.raw!==raw;
+    Object.assign(d,{title,raw,custom,updatedAt:Date.now()});
+    if(changed){d.ms=0;d.done=false}
+    delete d.sample;
+  }else{
+    d={id:'d'+Date.now().toString(36),title,raw,custom,bi:0,ms:0,nb:0,updatedAt:Date.now()};
+    docs.push(d);
+  }
+  d.sub=$('docSub').value.trim();
+  editingId=null;saveDocs();openDoc(d.id);
+}
+
+/* ---------- reader ---------- */
+const audio=new Audio();audio.preload='auto';
+const P={doc:null,segs:[],i:0,cur:-1,loaded:-1,url:null,playing:false,busy:0,tok:0,raf:0,lastSave:0};
+function buildBlocks(d){
+  const blocks=parseDoc(d.raw);
+  const auto=String(d.raw).trim().split('\n')[0].replace(/^#+\s*/,'').slice(0,70);
+  const custom=d.custom!=null?d.custom:(!d.sample&&!!d.title&&d.title!==auto);
+  let hasHead=!!(blocks.length&&blocks[0].type==='heading');
+  if(custom&&!hasHead){blocks.unshift({type:'heading',sentences:[d.title]});hasHead=true}
+  const at=hasHead?1:0;
+  if(d.sub&&!(blocks[at]&&blocks[at].type==='subheading'))blocks.splice(at,0,{type:'subheading',sentences:[d.sub]});
+  return blocks;
+}
+function renderSeg(i){
+  const seg=P.segs[i],node=seg.el;node.textContent='';seg.spans=[];
+  if(!seg.words){node.textContent=seg.text;return}
+  let pos=0;
+  seg.words.forEach((w,k)=>{
+    if(w.s>pos)node.appendChild(document.createTextNode(seg.text.slice(pos,w.s)));
+    const sp=el('span','w',seg.text.slice(w.s,w.e));sp.dataset.k=String(k);
+    node.appendChild(sp);seg.spans.push(sp);pos=w.e;
+  });
+  if(pos<seg.text.length)node.appendChild(document.createTextNode(seg.text.slice(pos)));
+  if(i===P.loaded)P.cur=-1;
+}
+function applyRec(i,rec){
+  const seg=P.segs[i];if(!seg||seg.rec===rec)return;
+  seg.rec=rec;seg.words=rec.words;renderSeg(i);
+}
+function openDoc(id){
+  const d=findDoc(id);if(!d)return;
+  stopAudio();
+  const page=$('page');page.textContent='';
+  P.doc=d;P.segs=[];P.cur=-1;P.loaded=-1;
+  buildBlocks(d).forEach(b=>{
+    const node=el(b.type==='heading'?'h1':b.type==='subheading'?'h2':'p');
+    (b.type==='paragraph'?groupSentences(b.sentences):b.sentences).forEach((text,k)=>{
+      if(k)node.appendChild(document.createTextNode(' '));
+      const sp=el('span','seg',text);sp.dataset.i=String(P.segs.length);
+      node.appendChild(sp);P.segs.push({text,el:sp,words:null,spans:[],rec:null});
+    });
+    page.appendChild(node);
+  });
+  d.nb=P.segs.length;
+  if(d.done){d.bi=0;d.ms=0;d.done=false}
+  P.i=Math.max(0,Math.min(d.bi||0,P.segs.length-1));
+  show('reader');
+  setActive(P.i);
+  if(P.i>0)P.segs[P.i].el.scrollIntoView({block:'center'});
+  note('');
+  /* Show highlights right away for parts already saved on this device. */
+  const voice=voiceName(),doc=d;
+  P.segs.forEach((seg,i)=>idbGet(audioKey(voice,seg.text)).then(rec=>{if(rec&&P.doc===doc&&rec.words)applyRec(i,rec);if(i===P.segs.length-1)offlineLabel()}));
+  setMedia();
+  offlineLabel();
+}
+function setActive(i){
+  P.segs.forEach((s,k)=>s.el.classList.toggle('as',k===i));
+  P.i=i;
+  $('progText').textContent='Part '+(i+1)+' of '+P.segs.length;
+  progress();
+}
+function progress(){
+  const n=P.segs.length||1;let f=P.i;
+  if(P.loaded===P.i&&audio.duration)f+=Math.min(1,audio.currentTime/audio.duration);
+  $('progFill').style.width=(f/n*100)+'%';
+}
+function setWord(k){
+  if(k===P.cur)return;
+  const seg=P.segs[P.loaded];if(!seg)return;
+  if(seg.spans[P.cur])seg.spans[P.cur].classList.remove('on');
+  P.cur=k;
+  const sp=seg.spans[k];if(!sp)return;
+  sp.classList.add('on');
+  if(settings.autoflow&&!audio.paused){
+    const r=sp.getBoundingClientRect(),barH=$('bar').offsetHeight||120;
+    if(r.top<70||r.bottom>window.innerHeight-barH-30)sp.scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
+  }
+}
+function clearWord(){const seg=P.segs[P.loaded];if(seg&&seg.spans[P.cur])seg.spans[P.cur].classList.remove('on');P.cur=-1}
+function tick(){
+  const seg=P.segs[P.loaded];
+  if(seg&&seg.words)setWord(wordAt(seg.words,audio.currentTime*1000));
+  progress();
+  if(!audio.paused&&!audio.ended)P.raf=requestAnimationFrame(tick);
+}
+function note(msg,bad){const n=$('note');n.textContent=msg||'';n.className='status'+(bad?' bad':'')}
+function updateBtn(){$('playBtn').textContent=P.playing?'Pause':'Play'}
+function savePos(){
+  const d=P.doc;if(!d)return;
+  d.bi=P.i;d.ms=P.loaded===P.i?Math.round(audio.currentTime*1000):(d.ms||0);
+  d.updatedAt=Date.now();saveDocs();
+}
+function waitMeta(){
+  return new Promise(res=>{
+    if(audio.readyState>=1)return res();
+    const on=()=>{audio.removeEventListener('loadedmetadata',on);audio.removeEventListener('error',on);res()};
+    audio.addEventListener('loadedmetadata',on);audio.addEventListener('error',on);
+  });
+}
+async function playSeg(i,ms,autoplay){
+  if(i<0||i>=P.segs.length)return;
+  const tok=++P.tok,seg=P.segs[i],want=autoplay!==false;
+  P.busy++;
+  try{await loadAndPlay(tok,i,seg,ms,want)}finally{P.busy--}
+}
+/* Pause events fired while a part is being switched are ours, not the user's: P.busy marks that window. */
+async function loadAndPlay(tok,i,seg,ms,want){
+  if(P.loaded!==i){audio.pause();clearWord()}
+  setActive(i);P.playing=want;updateBtn();
+  if(!seg.rec)note('Preparing the voice…');
+  let rec;
+  try{rec=await getAudio(seg.text,voiceName())}
+  catch(e){
+    if(tok!==P.tok)return;
+    P.playing=false;updateBtn();
+    note(e.message,true);
+    if(e.kind==='nokey'||e.kind==='key')offerSettings();
+    return;
+  }
+  if(tok!==P.tok)return;
+  applyRec(i,rec);
+  if(P.loaded!==i){
+    if(P.url)URL.revokeObjectURL(P.url);
+    P.url=URL.createObjectURL(rec.blob);
+    audio.src=P.url;P.loaded=i;P.cur=-1;
+    await waitMeta();
+    if(tok!==P.tok)return;
+  }
+  try{audio.currentTime=Math.max(0,(ms||0)/1000)}catch(e){}
+  audio.playbackRate=settings.rate;
+  note('');
+  if(want){
+    P.playing=true;updateBtn();
+    try{await audio.play()}
+    catch(e){if(tok===P.tok){P.playing=false;updateBtn();note('Tap Play to start.')}}
+  }else tick();
+  savePos();
+  prefetch(i+1);prefetch(i+2);
+}
+function prefetch(i){
+  const seg=P.segs[i];if(!seg||seg.rec||!hasKey()||!navigator.onLine)return;
+  const doc=P.doc;
+  getAudio(seg.text,voiceName()).then(rec=>{if(P.doc===doc)applyRec(i,rec)}).catch(()=>{});
+}
+function offerSettings(){
+  const n=$('note');const b=el('button','linkbtn',' Open Settings');b.type='button';b.style.marginLeft='6px';
+  b.addEventListener('click',openSettings);n.appendChild(b);
+}
+function play(){
+  if(P.loaded===P.i&&audio.src){P.playing=true;updateBtn();audio.playbackRate=settings.rate;audio.play().catch(()=>{P.playing=false;updateBtn()})}
+  else playSeg(P.i,(P.doc&&P.doc.bi===P.i)?(P.doc.ms||0):0,true);
+}
+function pauseAudio(){P.tok++;P.playing=false;audio.pause();updateBtn();if(view==='reader')note('')}
+function stopAudio(){
+  pauseAudio();
+  if(P.url){URL.revokeObjectURL(P.url);P.url=null}
+  audio.removeAttribute('src');audio.load();
+  P.loaded=-1;P.cur=-1;
+}
+function finish(){
+  P.playing=false;updateBtn();clearWord();
+  if(P.doc){P.doc.done=true;P.doc.bi=P.segs.length-1;P.doc.ms=0;P.doc.updatedAt=Date.now();saveDocs()}
+  $('progFill').style.width='100%';
+  note('Finished. Tap any word to hear it again.');
+}
+function prev(){
+  if(P.loaded===P.i&&audio.currentTime>2.5){audio.currentTime=0;tick();return}
+  if(P.i>0)playSeg(P.i-1,0,P.playing||audio.paused===false);
+}
+function next(){if(P.i<P.segs.length-1)playSeg(P.i+1,0,P.playing)}
+
+audio.addEventListener('play',()=>{cancelAnimationFrame(P.raf);P.raf=requestAnimationFrame(tick)});
+audio.addEventListener('pause',()=>{
+  if(P.busy||audio.ended)return;
+  if(P.playing){P.playing=false;updateBtn()}
+  savePos();tick();
+});
+audio.addEventListener('seeked',tick);
+audio.addEventListener('timeupdate',()=>{if(Date.now()-P.lastSave>3000){P.lastSave=Date.now();savePos()}});
+audio.addEventListener('ended',()=>{
+  if(!P.playing)return;
+  if(P.i<P.segs.length-1)playSeg(P.i+1,0,true);else finish();
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&view==='reader')savePos()});
+
+$('page').addEventListener('click',e=>{
+  if(window.getSelection&&String(window.getSelection()).length)return; /* the reader is selecting text */
+  const segEl=e.target.closest('.seg');if(!segEl)return;
+  const i=+segEl.dataset.i,seg=P.segs[i];
+  const w=e.target.closest('.w');
+  const ms=w&&seg.words?seg.words[+w.dataset.k].ms:0;
+  if(P.loaded===i&&audio.src){
+    audio.currentTime=ms/1000+0.001;
+    if(!P.playing)play();else tick();
+  }else playSeg(i,ms,true);
+});
+
+/* Lock screen and headphone controls. */
+function setMedia(){
+  if(!('mediaSession' in navigator)||!P.doc)return;
+  try{
+    navigator.mediaSession.metadata=new MediaMetadata({title:P.doc.title,artist:'LexiFlow',artwork:[{src:'icon-512.png',sizes:'512x512',type:'image/png'}]});
+    navigator.mediaSession.setActionHandler('play',play);
+    navigator.mediaSession.setActionHandler('pause',pauseAudio);
+    navigator.mediaSession.setActionHandler('previoustrack',prev);
+    navigator.mediaSession.setActionHandler('nexttrack',next);
+    navigator.mediaSession.setActionHandler('seekbackward',()=>{audio.currentTime=Math.max(0,audio.currentTime-5)});
+    navigator.mediaSession.setActionHandler('seekforward',()=>{audio.currentTime=Math.min(audio.duration||0,audio.currentTime+5)});
+  }catch(e){}
+}
+
+/* Save every part of the open reading so it plays without internet. */
+let offlineRun=0;
+function offlineLabel(){
+  const b=$('offlineBtn');if(offlineRun)return;
+  const all=P.segs.length&&P.segs.every(s=>s.rec);
+  b.textContent=all?'Saved offline':'Save offline';b.disabled=!!all;
+}
+async function saveOffline(){
+  if(!hasKey()){note('Add your Azure key in Settings first.',true);offerSettings();return}
+  const run=++offlineRun,doc=P.doc,b=$('offlineBtn');b.disabled=true;
+  const todo=P.segs.map((s,i)=>i).filter(i=>!P.segs[i].rec);
+  let n=0;
+  for(const i of todo){
+    if(P.doc!==doc||run!==offlineRun)return;
+    b.textContent='Saving '+(++n)+' of '+todo.length+'…';
+    try{applyRec(i,await getAudio(P.segs[i].text,voiceName()))}
+    catch(e){offlineRun=0;b.disabled=false;b.textContent='Save offline';note(e.message,true);return}
+  }
+  offlineRun=0;offlineLabel();
+}
+
+/* ---------- settings ---------- */
+const VOICES=[...document.querySelectorAll('#voiceSel option')].map(o=>o.value);
+function openSettings(){
+  $('azKey').value=azure.key;$('azRegion').value=azure.region||'eastus';
+  const known=VOICES.includes(settings.voice)&&settings.voice!=='custom';
+  $('voiceSel').value=known?settings.voice:'custom';
+  $('voiceCustom').value=known?'':settings.voice;
+  $('voiceCustomWrap').hidden=known;
+  $('autoflow').checked=!!settings.autoflow;$('themeSel').value=settings.theme;
+  $('voiceMsg').textContent='';$('voiceMsg').className='msg';$('libMsg').textContent='';
+  refreshUsage();
+  show('settings');
+}
+function refreshUsage(){
+  $('usageText').textContent='Characters sent to Azure this month: '+usage().toLocaleString('en-US')+' of 500,000 free.';
+  idbStats().then(s=>{$('cacheText').textContent='Saved audio: '+s.n+' part'+(s.n===1?'':'s')+', '+(s.bytes/1048576).toFixed(1)+' MB.'});
+}
+function readVoiceForm(){
+  const v=$('voiceSel').value==='custom'?$('voiceCustom').value.trim():$('voiceSel').value;
+  return {key:$('azKey').value.trim(),region:$('azRegion').value.trim().toLowerCase().replace(/\s+/g,'')||'eastus',voice:v};
+}
+function vmsg(t,kind){const m=$('voiceMsg');m.textContent=t;m.className='msg'+(kind?' '+kind:'')}
+$('voiceSel').addEventListener('change',()=>{$('voiceCustomWrap').hidden=$('voiceSel').value!=='custom'});
+$('saveVoice').addEventListener('click',()=>{
+  const f=readVoiceForm();
+  if(!f.voice){vmsg('Type the voice name.','bad');return}
+  azure.key=f.key;azure.region=f.region;save('lexiflow.azure',azure);
+  settings.voice=f.voice;saveSettings();
+  vmsg(f.key?'Saved.':'Saved. Add a key to hear the voice.',f.key?'ok':'');
+});
+const tester=new Audio();
+$('testVoice').addEventListener('click',async()=>{
+  const f=readVoiceForm();
+  if(!f.key){vmsg('Paste your key first.','bad');return}
+  if(!f.voice){vmsg('Type the voice name.','bad');return}
+  const btn=$('testVoice');btn.disabled=true;vmsg('Asking Azure…');
+  const old={key:azure.key,region:azure.region};azure.key=f.key;azure.region=f.region;
+  try{
+    const r=await queued(()=>synthesize('Hi! This is how I will read your texts in LexiFlow.',f.voice));
+    tester.src=URL.createObjectURL(r.blob);tester.play().catch(()=>{});
+    vmsg('It works. Tap Save to keep these settings.','ok');
+  }catch(e){vmsg(e.message,'bad')}
+  finally{azure.key=old.key;azure.region=old.region;btn.disabled=false;refreshUsage()}
+});
+$('autoflow').addEventListener('change',e=>{settings.autoflow=e.target.checked;saveSettings()});
+$('themeSel').addEventListener('change',e=>{settings.theme=e.target.value;saveSettings();applyTheme()});
+$('clearAudio').addEventListener('click',async()=>{
+  const b=$('clearAudio');
+  if(!b.dataset.sure){b.dataset.sure='1';b.textContent='Delete all saved audio?';return}
+  delete b.dataset.sure;b.textContent='Delete saved audio';
+  await idbClear().catch(()=>{});refreshUsage();
+});
+$('exportBtn').addEventListener('click',()=>{
+  const data=JSON.stringify({app:'lexiflow',version:1,exportedAt:new Date().toISOString(),docs},null,2);
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+  a.download='lexiflow-library.json';document.body.appendChild(a);a.click();a.remove();
+  $('libMsg').textContent='Exported '+docs.length+' reading'+(docs.length===1?'':'s')+'.';$('libMsg').className='msg ok';
+});
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  const m=$('libMsg');
+  try{
+    const data=JSON.parse(await f.text());
+    const list=Array.isArray(data)?data:data.docs;
+    if(!Array.isArray(list))throw new Error('bad');
+    let added=0,updated=0;
+    list.forEach(x=>{
+      if(!x||typeof x.raw!=='string'||!x.id)return;
+      const cur=findDoc(x.id);
+      if(!cur){docs.push(x);added++}
+      else if((x.updatedAt||0)>(cur.updatedAt||0)){Object.assign(cur,x);updated++}
+    });
+    saveDocs();
+    m.textContent='Imported: '+added+' new, '+updated+' updated.';m.className='msg ok';
+  }catch(err){m.textContent='That file is not a LexiFlow library.';m.className='msg bad'}
+});
+
+/* ---------- wiring ---------- */
+$('brand').addEventListener('click',()=>{renderHome();show('home')});
+$('settingsBtn').addEventListener('click',openSettings);
+$('closeSettings').addEventListener('click',()=>{renderHome();show('home')});
+$('cancelEdit').addEventListener('click',()=>{renderHome();show('home')});
+$('saveDoc').addEventListener('click',saveReading);
+$('back').addEventListener('click',()=>{renderHome();show('home')});
+$('editCur').addEventListener('click',()=>{if(P.doc)editReading(P.doc.id)});
+$('offlineBtn').addEventListener('click',saveOffline);
+$('playBtn').addEventListener('click',()=>{P.playing?pauseAudio():play()});
+$('prev').addEventListener('click',prev);
+$('next').addEventListener('click',next);
+$('rate').value=String(settings.rate);
+$('rate').addEventListener('change',e=>{settings.rate=+e.target.value;audio.playbackRate=settings.rate;saveSettings()});
+$('version').textContent='LexiFlow '+VERSION;
+window.addEventListener('online',()=>{if(view==='reader')note('')});
+window.addEventListener('offline',()=>{if(view==='reader')note('You are offline. Saved parts still play.')});
+
+renderHome();show('home');
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+window.__lexi={P,audio,settings,azure,docs:()=>docs,getAudio,idbStats};
+})();
+</script>
+</body>
+</html>
