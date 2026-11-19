@@ -14,7 +14,7 @@
 :root{
   --bg:#F6F6F4; --card:#FFFFFF; --text:#1C1C1C; --muted:#6B6B6B;
   --line:rgba(28,28,40,.10); --accent:#4352C4; --bad:#B4483F; --ok:#2E7D4F;
-  --seg:rgba(28,28,60,.045); --word:rgba(80,100,255,.24);
+  --hl:80,100,255; --wa:.32; --sa:.14;
   --ui:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
   --read:"Literata","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif;
   color-scheme:light;
@@ -23,14 +23,14 @@
   :root:not([data-theme="light"]){
     --bg:#111111; --card:#1C1C1C; --text:#F2F2F2; --muted:#9A9A9A;
     --line:rgba(235,235,255,.11); --accent:#98A4FF; --bad:#E58B82; --ok:#7CCB98;
-    --seg:rgba(235,235,255,.05); --word:rgba(120,140,255,.40);
+    --wa:.46; --sa:.17;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#111111; --card:#1C1C1C; --text:#F2F2F2; --muted:#9A9A9A;
   --line:rgba(235,235,255,.11); --accent:#98A4FF; --bad:#E58B82; --ok:#7CCB98;
-  --seg:rgba(235,235,255,.05); --word:rgba(120,140,255,.40);
+  --wa:.46; --sa:.17;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -91,9 +91,14 @@ article h2{font-family:var(--read);font-size:20px;line-height:1.45;margin:0 0 26
 article p{margin:0 0 1.15em}
 article h1+p{margin-top:22px}
 .seg{border-radius:5px;cursor:pointer;-webkit-box-decoration-break:clone;box-decoration-break:clone}
-.seg.as{background:var(--seg)}
+.sent{border-radius:5px;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background-color .15s ease}
+.sent.on{background:rgba(var(--hl),var(--sa))}
 .w{border-radius:4px;padding:1px 2px;margin:0 -2px}
-.w.on{background:var(--word)}
+.w.on{background:rgba(var(--hl),var(--wa))}
+.swatches{display:flex;gap:12px;flex-wrap:wrap}
+.sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);padding:0;background:rgb(var(--c))}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--text)}
+.sample{font-family:var(--read);font-size:18px;line-height:1.7;margin:0}
 
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
 .bar .in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
@@ -184,6 +189,11 @@ article h1+p{margin-top:22px}
 
     <div class="stack">
       <h2 class="label">Reading</h2>
+      <div class="stack" style="gap:10px">
+        <span class="muted small" style="font-weight:700">Highlight color</span>
+        <div class="swatches" id="swatches" role="group" aria-label="Highlight color"></div>
+        <p class="sample" aria-hidden="true"><span class="sent on">The sentence you are hearing is <span class="w on">shaded</span> softly.</span> The rest stays plain.</p>
+      </div>
       <label class="check" for="autoflow"><input id="autoflow" type="checkbox"> Keep the current word in view</label>
       <label class="field" for="themeSel">Theme
         <select id="themeSel">
@@ -233,7 +243,7 @@ article h1+p{margin-top:22px}
 <script>
 (function(){
 'use strict';
-const VERSION='1.0.0';
+const VERSION='1.1.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -269,10 +279,11 @@ function parseDoc(raw){
 /* Long paragraphs are split into parts of whole sentences, one audio file per part. */
 const PART_MAX=1200;
 function groupSentences(sentences){
-  const parts=[];let cur='';
+  const parts=[];let cur=null;
   sentences.forEach(s=>{
-    if(cur&&(cur.length+1+s.length)>PART_MAX){parts.push(cur);cur=s}
-    else cur=cur?cur+' '+s:s;
+    if(cur&&(cur.text.length+1+s.length)>PART_MAX){parts.push(cur);cur=null}
+    if(!cur)cur={text:s,sents:[{s:0,e:s.length}]};
+    else{const at=cur.text.length+1;cur.text+=' '+s;cur.sents.push({s:at,e:at+s.length})}
   });
   if(cur)parts.push(cur);
   return parts;
@@ -323,15 +334,17 @@ const SAMPLE=[
 'Over time, the pages add up. Words that once looked strange begin to feel familiar. As one teacher liked to say, “You do not need to understand everything today. You only need to come back tomorrow.”'
 ].join('\n\n');
 
-const settings=Object.assign({rate:1,autoflow:true,theme:'system',voice:'en-US-AvaMultilingualNeural'},load('lexiflow.settings',{})||{});
+const settings=Object.assign({rate:1,autoflow:true,theme:'system',color:'blue',voice:'en-US-AvaMultilingualNeural'},load('lexiflow.settings',{})||{});
 const azure=Object.assign({key:'',region:'eastus'},load('lexiflow.azure',{})||{});
 let docs=load('lexiflow.docs',null);
 if(!Array.isArray(docs))docs=[{id:'sample',title:'Small Steps, Clear Mind',raw:SAMPLE,sample:true,bi:0,ms:0,nb:0,updatedAt:0}];
 const saveDocs=()=>save('lexiflow.docs',docs);
 const saveSettings=()=>save('lexiflow.settings',settings);
 const hasKey=()=>!!(azure.key&&azure.region);
+const COLORS={blue:['Blue','80,100,255'],yellow:['Yellow','255,196,0'],green:['Green','40,175,95'],pink:['Pink','235,80,160'],orange:['Orange','255,135,30'],purple:['Purple','150,90,240']};
 function applyTheme(){
   const r=document.documentElement;
+  r.style.setProperty('--hl',(COLORS[settings.color]||COLORS.blue)[1]);
   if(settings.theme==='light'||settings.theme==='dark')r.setAttribute('data-theme',settings.theme);else r.removeAttribute('data-theme');
 }
 applyTheme();
@@ -537,17 +550,25 @@ function buildBlocks(d){
   if(d.sub&&!(blocks[at]&&blocks[at].type==='subheading'))blocks.splice(at,0,{type:'subheading',sentences:[d.sub]});
   return blocks;
 }
+/* A part is drawn as sentences, and each sentence holds its word spans. */
 function renderSeg(i){
-  const seg=P.segs[i],node=seg.el;node.textContent='';seg.spans=[];
-  if(!seg.words){node.textContent=seg.text;return}
-  let pos=0;
-  seg.words.forEach((w,k)=>{
-    if(w.s>pos)node.appendChild(document.createTextNode(seg.text.slice(pos,w.s)));
-    const sp=el('span','w',seg.text.slice(w.s,w.e));sp.dataset.k=String(k);
-    node.appendChild(sp);seg.spans.push(sp);pos=w.e;
+  const seg=P.segs[i],node=seg.el,text=seg.text;node.textContent='';
+  seg.spans=[];seg.sentEls=[];seg.wsent=[];
+  const words=seg.words||[];let k=0,pos=0;
+  seg.sents.forEach((r,si)=>{
+    if(r.s>pos)node.appendChild(document.createTextNode(text.slice(pos,r.s)));
+    const sn=el('span','sent');let p=r.s;
+    while(k<words.length&&words[k].s<r.e){
+      const w=words[k];
+      if(w.s>p)sn.appendChild(document.createTextNode(text.slice(p,w.s)));
+      const sp=el('span','w',text.slice(w.s,w.e));sp.dataset.k=String(k);
+      sn.appendChild(sp);seg.spans.push(sp);seg.wsent.push(si);p=w.e;k++;
+    }
+    if(p<r.e)sn.appendChild(document.createTextNode(text.slice(p,r.e)));
+    node.appendChild(sn);seg.sentEls.push(sn);pos=Math.max(r.e,p);
   });
-  if(pos<seg.text.length)node.appendChild(document.createTextNode(seg.text.slice(pos)));
-  if(i===P.loaded)P.cur=-1;
+  if(pos<text.length)node.appendChild(document.createTextNode(text.slice(pos)));
+  if(i===P.loaded){P.cur=-1;P.sent=null}
 }
 function applyRec(i,rec){
   const seg=P.segs[i];if(!seg||seg.rec===rec)return;
@@ -560,10 +581,12 @@ function openDoc(id){
   P.doc=d;P.segs=[];P.cur=-1;P.loaded=-1;
   buildBlocks(d).forEach(b=>{
     const node=el(b.type==='heading'?'h1':b.type==='subheading'?'h2':'p');
-    (b.type==='paragraph'?groupSentences(b.sentences):b.sentences).forEach((text,k)=>{
+    (b.type==='paragraph'?groupSentences(b.sentences):b.sentences.map(t=>({text:t,sents:[{s:0,e:t.length}]}))).forEach((part,k)=>{
       if(k)node.appendChild(document.createTextNode(' '));
-      const sp=el('span','seg',text);sp.dataset.i=String(P.segs.length);
-      node.appendChild(sp);P.segs.push({text,el:sp,words:null,spans:[],rec:null});
+      const sp=el('span','seg');sp.dataset.i=String(P.segs.length);
+      node.appendChild(sp);
+      P.segs.push({text:part.text,sents:part.sents,el:sp,words:null,spans:[],rec:null});
+      renderSeg(P.segs.length-1);
     });
     page.appendChild(node);
   });
@@ -581,7 +604,6 @@ function openDoc(id){
   offlineLabel();
 }
 function setActive(i){
-  P.segs.forEach((s,k)=>s.el.classList.toggle('as',k===i));
   P.i=i;
   $('progText').textContent='Part '+(i+1)+' of '+P.segs.length;
   progress();
@@ -594,19 +616,21 @@ function progress(){
 function setWord(k){
   if(k===P.cur)return;
   const seg=P.segs[P.loaded];if(!seg)return;
-  if(seg.spans[P.cur])seg.spans[P.cur].classList.remove('on');
   P.cur=k;
-  const sp=seg.spans[k];if(!sp)return;
-  sp.classList.add('on');
+  const sp=seg.spans[k],sn=sp?seg.sentEls[seg.wsent[k]]:null;
+  $('page').querySelectorAll('.w.on').forEach(x=>{if(x!==sp)x.classList.remove('on')});
+  if(sn!==P.sent){$('page').querySelectorAll('.sent.on').forEach(x=>{if(x!==sn)x.classList.remove('on')});P.sent=sn}
+  if(!sp)return;
+  sp.classList.add('on');if(sn)sn.classList.add('on');
   if(settings.autoflow&&!audio.paused){
     const r=sp.getBoundingClientRect(),barH=$('bar').offsetHeight||120;
     if(r.top<70||r.bottom>window.innerHeight-barH-30)sp.scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
   }
 }
-function clearWord(){const seg=P.segs[P.loaded];if(seg&&seg.spans[P.cur])seg.spans[P.cur].classList.remove('on');P.cur=-1}
+function clearWord(){$('page').querySelectorAll('.w.on,.sent.on').forEach(x=>x.classList.remove('on'));P.cur=-1;P.sent=null}
 function tick(){
   const seg=P.segs[P.loaded];
-  if(seg&&seg.words)setWord(wordAt(seg.words,audio.currentTime*1000));
+  if(seg&&seg.words&&!P.busy)setWord(wordAt(seg.words,audio.currentTime*1000));
   progress();
   if(!audio.paused&&!audio.ended)P.raf=requestAnimationFrame(tick);
 }
@@ -628,7 +652,7 @@ async function playSeg(i,ms,autoplay){
   if(i<0||i>=P.segs.length)return;
   const tok=++P.tok,seg=P.segs[i],want=autoplay!==false;
   P.busy++;
-  try{await loadAndPlay(tok,i,seg,ms,want)}finally{P.busy--}
+  try{await loadAndPlay(tok,i,seg,ms,want)}finally{P.busy--;if(!P.busy)tick()}
 }
 /* Pause events fired while a part is being switched are ours, not the user's: P.busy marks that window. */
 async function loadAndPlay(tok,i,seg,ms,want){
@@ -649,7 +673,7 @@ async function loadAndPlay(tok,i,seg,ms,want){
   if(P.loaded!==i){
     if(P.url)URL.revokeObjectURL(P.url);
     P.url=URL.createObjectURL(rec.blob);
-    audio.src=P.url;P.loaded=i;P.cur=-1;
+    clearWord();audio.src=P.url;P.loaded=i;
     await waitMeta();
     if(tok!==P.tok)return;
   }
@@ -765,7 +789,7 @@ function openSettings(){
   $('voiceSel').value=known?settings.voice:'custom';
   $('voiceCustom').value=known?'':settings.voice;
   $('voiceCustomWrap').hidden=known;
-  $('autoflow').checked=!!settings.autoflow;$('themeSel').value=settings.theme;
+  $('autoflow').checked=!!settings.autoflow;$('themeSel').value=settings.theme;renderSwatches();
   $('voiceMsg').textContent='';$('voiceMsg').className='msg';$('libMsg').textContent='';
   refreshUsage();
   show('settings');
@@ -801,6 +825,16 @@ $('testVoice').addEventListener('click',async()=>{
   }catch(e){vmsg(e.message,'bad')}
   finally{azure.key=old.key;azure.region=old.region;btn.disabled=false;refreshUsage()}
 });
+function renderSwatches(){
+  const box=$('swatches');box.textContent='';
+  Object.keys(COLORS).forEach(name=>{
+    const b=el('button','sw');b.type='button';b.style.setProperty('--c',COLORS[name][1]);
+    b.setAttribute('aria-label',COLORS[name][0]);b.title=COLORS[name][0];
+    b.setAttribute('aria-pressed',String(settings.color===name));
+    b.addEventListener('click',()=>{settings.color=name;saveSettings();applyTheme();renderSwatches()});
+    box.appendChild(b);
+  });
+}
 $('autoflow').addEventListener('change',e=>{settings.autoflow=e.target.checked;saveSettings()});
 $('themeSel').addEventListener('change',e=>{settings.theme=e.target.value;saveSettings();applyTheme()});
 $('clearAudio').addEventListener('click',async()=>{
