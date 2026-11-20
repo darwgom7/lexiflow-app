@@ -95,6 +95,8 @@ article h1+p{margin-top:22px}
 .sent.on{background:rgba(var(--hl),var(--sa))}
 body.hl-word .sent.on,body.hl-off .sent.on{background:none}
 body.hl-sent .w.on,body.hl-off .w.on{background:none}
+body.hl-fade .sent.on,body.hl-fade .w.on{background:none}
+body.hl-fade .seg.past,body.hl-fade .w.past{color:var(--muted);transition:color .2s ease}
 .icon{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px}
 .w{border-radius:4px;padding:1px 2px;margin:0 -2px}
 .w.on{background:rgba(var(--hl),var(--wa))}
@@ -202,6 +204,7 @@ body.hl-sent .w.on,body.hl-off .w.on{background:none}
           <option value="both">Sentence and word</option>
           <option value="word">Word only</option>
           <option value="sent">Sentence only</option>
+          <option value="fade">Fade read text</option>
           <option value="off">Off</option>
         </select>
       </label>
@@ -254,7 +257,7 @@ body.hl-sent .w.on,body.hl-off .w.on{background:none}
 <script>
 (function(){
 'use strict';
-const VERSION='1.2.0';
+const VERSION='1.3.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -617,6 +620,7 @@ function openDoc(id){
 }
 function setActive(i){
   P.i=i;
+  P.segs.forEach((s,k)=>s.el.classList.toggle('past',k<i));
   $('progText').textContent='Part '+(i+1)+' of '+P.segs.length;
   progress();
 }
@@ -632,6 +636,7 @@ function setWord(k){
   const sp=seg.spans[k],sn=sp?seg.sentEls[seg.wsent[k]]:null;
   $('page').querySelectorAll('.w.on').forEach(x=>{if(x!==sp)x.classList.remove('on')});
   if(sn!==P.sent){$('page').querySelectorAll('.sent.on').forEach(x=>{if(x!==sn)x.classList.remove('on')});P.sent=sn}
+  for(let j=0;j<seg.spans.length;j++)seg.spans[j].classList.toggle('past',j<k);
   if(!sp)return;
   sp.classList.add('on');if(sn)sn.classList.add('on');
   if(settings.autoflow&&!audio.paused){
