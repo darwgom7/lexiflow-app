@@ -107,6 +107,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .swatches{display:flex;gap:12px;flex-wrap:wrap}
 .sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);padding:0;background:rgb(var(--c))}
 .sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--text)}
+.preview{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .sample{font-family:var(--read);font-size:18px;line-height:1.7;margin:0}
 
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
@@ -206,7 +207,6 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
       <div class="stack" style="gap:10px">
         <span class="muted small" style="font-weight:700">Highlight color</span>
         <div class="swatches" id="swatches" role="group" aria-label="Highlight color"></div>
-        <p class="sample" aria-hidden="true"><span class="sent on">The sentence you are hearing is <span class="w on">shaded</span> softly.</span> The rest stays plain.</p>
       </div>
       <label class="field" for="hlSel">Highlight
         <select id="hlSel">
@@ -217,6 +217,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
         </select>
       </label>
       <label class="check" for="fadeChk"><input id="fadeChk" type="checkbox"> Fade text already read</label>
+      <div class="preview"><span class="muted small" style="font-weight:700">Preview</span><p class="sample" aria-hidden="true"><span class="sent past">This sentence was already read.</span> <span class="sent on">The one you are hearing is <span class="w on">shaded</span> softly.</span> <span class="sent">The next one waits its turn.</span></p></div>
       <label class="check" for="autoflow"><input id="autoflow" type="checkbox"> Keep the current word in view</label>
       <label class="field" for="themeSel">Theme
         <select id="themeSel">
@@ -266,7 +267,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='1.4.1';
+const VERSION='1.4.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
