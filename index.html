@@ -108,7 +108,10 @@ body.hl-fade .seg.past,body.hl-fade .w.past{color:var(--muted);transition:color 
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
 .bar .in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 .ctl{display:flex;align-items:center;gap:10px}
-.ctl .play{min-width:96px}
+.playbtn{width:52px;height:52px;border-radius:50%;border:0;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none}
+.playbtn:hover{filter:brightness(1.08)}
+.playbtn svg{width:24px;height:24px}
+.ctl .icon{width:44px;height:44px;border-radius:50%;padding:0}
 .ctl select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:14px;font-weight:600;margin-left:auto}
 .status{font-size:13px;color:var(--muted);min-height:1.3em;margin:0}
 .status.bad{color:var(--bad);font-weight:600}
@@ -243,7 +246,7 @@ body.hl-fade .seg.past,body.hl-fade .w.past{color:var(--muted);transition:color 
   <div class="in">
     <div class="ctl">
       <button class="ghost icon" id="prev" type="button" aria-label="Previous sentence" title="Previous sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
-      <button class="primary play" id="playBtn" type="button">Play</button>
+      <button class="playbtn" id="playBtn" type="button" aria-label="Play"></button>
       <button class="ghost icon" id="next" type="button" aria-label="Next sentence" title="Next sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button>
       <select id="rate" aria-label="Speed">
         <option value="0.7">0.7x</option><option value="0.8">0.8x</option><option value="0.9">0.9x</option>
@@ -257,7 +260,7 @@ body.hl-fade .seg.past,body.hl-fade .w.past{color:var(--muted);transition:color 
 <script>
 (function(){
 'use strict';
-const VERSION='1.3.1';
+const VERSION='1.3.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -652,7 +655,9 @@ function tick(){
   if(!audio.paused&&!audio.ended)P.raf=requestAnimationFrame(tick);
 }
 function note(msg,bad){const n=$('note');n.textContent=msg||'';n.className='status'+(bad?' bad':'')}
-function updateBtn(){$('playBtn').textContent=P.playing?'Pause':'Play'}
+const I_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+const I_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>';
+function updateBtn(){const b=$('playBtn');b.innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',P.playing?'Pause':'Play')}
 function savePos(){
   const d=P.doc;if(!d)return;
   d.bi=P.i;d.ms=P.loaded===P.i?Math.round(audio.currentTime*1000):(d.ms||0);
@@ -934,7 +939,7 @@ $('offlineBtn').addEventListener('click',saveOffline);
 $('playBtn').addEventListener('click',()=>{P.playing?pauseAudio():play()});
 $('prev').addEventListener('click',prev);
 $('next').addEventListener('click',next);
-$('rate').value=String(settings.rate);
+$('rate').value=String(settings.rate);updateBtn();
 $('rate').addEventListener('change',e=>{settings.rate=+e.target.value;audio.playbackRate=settings.rate;saveSettings()});
 $('version').textContent='LexiFlow '+VERSION;
 window.addEventListener('online',()=>{if(view==='reader')note('')});
