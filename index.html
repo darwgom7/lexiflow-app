@@ -257,7 +257,7 @@ body.hl-fade .seg.past,body.hl-fade .w.past{color:var(--muted);transition:color 
 <script>
 (function(){
 'use strict';
-const VERSION='1.3.0';
+const VERSION='1.3.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -715,7 +715,7 @@ function offerSettings(){
   b.addEventListener('click',openSettings);n.appendChild(b);
 }
 function play(){
-  if(P.loaded===P.i&&audio.src){P.playing=true;updateBtn();audio.playbackRate=settings.rate;audio.play().catch(()=>{P.playing=false;updateBtn()})}
+  if(P.loaded===P.i&&audio.src){P.playing=true;updateBtn();note('');audio.playbackRate=settings.rate;audio.play().catch(()=>{P.playing=false;updateBtn()})}
   else playSeg(P.i,(P.doc&&P.doc.bi===P.i)?(P.doc.ms||0):0,true);
 }
 function pauseAudio(){P.tok++;P.playing=false;audio.pause();updateBtn();if(view==='reader')note('')}
