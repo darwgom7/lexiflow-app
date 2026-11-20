@@ -100,7 +100,7 @@ article h1+p{margin-top:22px}
 .sent.on{background:rgba(var(--hl),var(--sa))}
 body.hl-word .sent.on,body.hl-off .sent.on{background:none}
 body.hl-sent .w.on,body.hl-off .w.on{background:none}
-body.fade .seg.past,body.fade .w.past{color:var(--muted);transition:color .2s ease}
+body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s ease}
 .icon{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px}
 .w{border-radius:4px;padding:1px 2px;margin:0 -2px}
 .w.on{background:rgba(var(--hl),var(--wa))}
@@ -266,7 +266,7 @@ body.fade .seg.past,body.fade .w.past{color:var(--muted);transition:color .2s ea
 <script>
 (function(){
 'use strict';
-const VERSION='1.4.0';
+const VERSION='1.4.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -646,7 +646,8 @@ function setWord(k){
   const sp=seg.spans[k],sn=sp?seg.sentEls[seg.wsent[k]]:null;
   $('page').querySelectorAll('.w.on').forEach(x=>{if(x!==sp)x.classList.remove('on')});
   if(sn!==P.sent){$('page').querySelectorAll('.sent.on').forEach(x=>{if(x!==sn)x.classList.remove('on')});P.sent=sn}
-  for(let j=0;j<seg.spans.length;j++)seg.spans[j].classList.toggle('past',j<k);
+  const cs=sp?seg.wsent[k]:-1;
+  for(let j=0;j<seg.sentEls.length;j++)seg.sentEls[j].classList.toggle('past',j<cs);
   if(!sp)return;
   sp.classList.add('on');if(sn)sn.classList.add('on');
   if(settings.autoflow&&!audio.paused){
