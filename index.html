@@ -136,7 +136,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .speedchip{margin-left:auto;height:40px;padding:0 14px;border-radius:999px;border:0;background:var(--sc);color:var(--onsc);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:20;opacity:0;transition:opacity .2s ease}
 .scrim.open{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:10px 20px 22px;padding-bottom:max(22px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .24s cubic-bezier(.2,.8,.2,1)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-height:86vh;overflow-y:auto;overscroll-behavior:contain;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:10px 20px 22px;padding-bottom:max(22px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .24s cubic-bezier(.2,.8,.2,1)}
 .sheet.open{transform:none}
 .sheet .in{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 4px}
@@ -321,12 +321,18 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
     <div class="stack" style="gap:10px"><h3>Speed</h3>
       <div class="pills" id="speeds"></div>
     </div>
+    <div class="stack" style="gap:10px"><h3>Shadowing</h3>
+      <span class="muted small">Repeat each sentence</span>
+      <div class="pills" id="reps"></div>
+      <span class="muted small">Pause after each sentence so you can say it out loud</span>
+      <div class="pills" id="gaps"></div>
+    </div>
   </div>
 </div>
 <script>
 (function(){
 'use strict';
-const VERSION='1.9.2';
+const VERSION='2.0.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -821,7 +827,10 @@ function setWord(k){
 function clearWord(){$('page').querySelectorAll('.w.on,.sent.on').forEach(x=>x.classList.remove('on'));P.cur=-1;P.sent=null}
 function tick(){
   const seg=P.segs[P.loaded];
-  if(seg&&seg.words&&!P.busy)setWord(wordAt(seg.words,audio.currentTime*1000));
+  if(seg&&seg.words&&!P.busy){
+    if(shadowCheck())return;
+    setWord(wordAt(seg.words,audio.currentTime*1000));
+  }
   progress();
   if(!audio.paused&&!audio.ended)P.raf=requestAnimationFrame(tick);
 }
@@ -842,6 +851,7 @@ function waitMeta(){
   });
 }
 async function playSeg(i,ms,autoplay){
+  shadowReset();
   if(i<0||i>=P.segs.length)return;
   const tok=++P.tok,seg=P.segs[i],want=autoplay!==false;
   P.busy++;
@@ -891,10 +901,11 @@ function offerSettings(){
   b.addEventListener('click',openSettings);n.appendChild(b);
 }
 function play(){
+  if(SH.waiting){shadowSkip();return}
   if(P.loaded===P.i&&audio.src){P.playing=true;updateBtn();note('');audio.playbackRate=settings.rate;audio.play().catch(()=>{P.playing=false;updateBtn()})}
   else playSeg(P.i,(P.doc&&P.doc.bi===P.i)?(P.doc.ms||0):0,true);
 }
-function pauseAudio(){P.tok++;P.playing=false;audio.pause();updateBtn();if(view==='reader')note('')}
+function pauseAudio(){shadowCancel();P.tok++;P.playing=false;audio.pause();updateBtn();if(view==='reader')note('')}
 function stopAudio(){
   pauseAudio();
   if(P.url){URL.revokeObjectURL(P.url);P.url=null}
@@ -907,6 +918,47 @@ function finish(){
   $('progFill').style.width='100%';
   note('Finished. Tap any word to hear it again.');
 }
+/* ---------- shadowing: repeat a sentence and leave a pause to say it out loud ---------- */
+const SH={key:null,si:-1,start:0,end:Infinity,done:0,fired:false,waiting:false,pausing:false,timer:0,cb:null};
+const shadowOn=()=>(settings.rep??1)!==1||(settings.gap||'off')!=='off';
+function shadowReset(){shadowCancel();SH.key=null;SH.done=0;SH.fired=false}
+function shadowCancel(){if(SH.timer){clearTimeout(SH.timer);clearInterval(SH.tick)}SH.timer=0;SH.waiting=false;SH.cb=null}
+function sentBounds(seg,si){
+  const st=sentStarts(seg);let end=Infinity;
+  for(let j=si+1;j<st.length;j++)if(st[j]!=null){end=st[j];break}
+  return {start:st[si]!=null?st[si]:0,end};
+}
+/* Called on every frame while playing. Returns true when it took over (repeat or pause). */
+function shadowCheck(){
+  if(!shadowOn()||!P.playing||audio.paused||SH.waiting)return false;
+  const seg=P.segs[P.loaded],now=audio.currentTime*1000,key=P.loaded+':';
+  if(SH.key&&SH.key.startsWith(key)&&!SH.fired&&now>=SH.end-25&&now<SH.end+800){shadowFire(()=>{});return true}
+  const k=wordAt(seg.words,now),si=k<0?0:seg.wsent[k],nk=key+si;
+  if(nk!==SH.key){const b=sentBounds(seg,si);Object.assign(SH,{key:nk,si,start:b.start,end:b.end,done:0,fired:false})}
+  return false;
+}
+function gapMs(){
+  const g=settings.gap||'off';if(g==='off')return 0;
+  if(g==='auto'){const len=(SH.end===Infinity?(audio.duration*1000||0):SH.end)-SH.start;return Math.max(1500,Math.min(12000,len/(settings.rate||1)+600))}
+  return +g;
+}
+/* A sentence just ended: wait if a pause is set, then repeat it or go on. */
+function shadowFire(goOn){
+  SH.done++;
+  const rep=settings.rep??1,again=rep===0||SH.done<rep;
+  const next=()=>{
+    if(again){SH.fired=false;SH.selfSeek=true;audio.currentTime=SH.start/1000;if(audio.paused)audio.play().catch(()=>{});tick();return}
+    SH.fired=true;goOn();if(audio.paused&&!audio.ended&&P.playing)audio.play().catch(()=>{});else if(!audio.ended)tick();
+  };
+  const ms=gapMs();
+  if(!ms){next();return}
+  SH.waiting=true;SH.cb=next;SH.pausing=!audio.paused;audio.pause();
+  const t0=Date.now(),label=again&&rep!==1?'Your turn. Say it, then it plays again':'Your turn. Say it out loud';
+  const show=()=>{const left=Math.max(0,Math.ceil((ms-(Date.now()-t0))/1000));note(label+' · '+left+'s')};show();
+  SH.tick=setInterval(show,250);
+  SH.timer=setTimeout(()=>{clearInterval(SH.tick);SH.timer=0;SH.waiting=false;const cb=SH.cb;SH.cb=null;note('');cb&&cb()},ms);
+}
+function shadowSkip(){const cb=SH.cb;shadowCancel();note('');P.playing=true;updateBtn();cb&&cb()}
 /* Start time (ms) of each sentence of a part, from its first word. */
 function sentStarts(seg){
   const out=seg.sents.map(()=>null);
@@ -918,7 +970,7 @@ function curSentence(){
   const k=wordAt(seg.words,audio.currentTime*1000);
   return k<0?0:seg.wsent[k];
 }
-function seekTo(ms){audio.currentTime=Math.max(0,ms/1000);tick();if(!P.playing)play()}
+function seekTo(ms){shadowReset();audio.currentTime=Math.max(0,ms/1000);tick();if(!P.playing||audio.paused)play()}
 /* Back and forward move one sentence, crossing into the next or previous part when needed. */
 function prev(){
   const playing=P.playing||!audio.paused;
@@ -950,14 +1002,15 @@ document.addEventListener('keydown',e=>{
 
 audio.addEventListener('play',()=>{cancelAnimationFrame(P.raf);P.raf=requestAnimationFrame(tick)});
 audio.addEventListener('pause',()=>{
-  if(P.busy||audio.ended)return;
+  if(P.busy||audio.ended||SH.pausing){SH.pausing=false;return}
   if(P.playing){P.playing=false;updateBtn()}
   savePos();tick();
 });
-audio.addEventListener('seeked',tick);
+audio.addEventListener('seeked',()=>{if(SH.selfSeek)SH.selfSeek=false;else if(SH.key&&!SH.waiting){SH.key=null;SH.done=0;SH.fired=false}tick()});
 audio.addEventListener('timeupdate',()=>{if(Date.now()-P.lastSave>3000){P.lastSave=Date.now();savePos()}});
 audio.addEventListener('ended',()=>{
   if(!P.playing)return;
+  if(shadowOn()&&SH.key&&!SH.fired){shadowFire(()=>{if(P.i<P.segs.length-1)playSeg(P.i+1,0,true);else finish()});return}
   if(P.i<P.segs.length-1)playSeg(P.i+1,0,true);else finish();
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&view==='reader')savePos()});
@@ -1140,9 +1193,12 @@ const SPEEDS=[0.7,0.8,0.9,1,1.1,1.25,1.5];
 const fmtRate=r=>(r%1===0?r.toFixed(1):String(r))+'x';
 function setRate(r){settings.rate=r;audio.playbackRate=r;saveSettings();paintSheet()}
 function paintSheet(){
-  $('rate').textContent=fmtRate(settings.rate);
+  $('rate').textContent=fmtRate(settings.rate)+((settings.rep??1)!==1?' · '+((settings.rep??1)===0?'∞':settings.rep+'×'):'')+((settings.gap||'off')!=='off'?' · ⏸':'');
   $('fsVal').textContent=Math.round((settings.fs||1)*100)+'%';
   document.querySelectorAll('#themes .th').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===settings.theme)));
+  const reps=[[1,'1×'],[2,'2×'],[3,'3×'],[0,'∞']],gaps=[['off','Off'],['auto','Auto'],['2000','2 s'],['4000','4 s']];
+  const rp=$('reps');rp.textContent='';reps.forEach(([v,l])=>{const b=el('button','pill',l);b.type='button';b.setAttribute('aria-pressed',String((settings.rep??1)===v));b.addEventListener('click',()=>{settings.rep=v;saveSettings();shadowReset();paintSheet()});rp.appendChild(b)});
+  const gp=$('gaps');gp.textContent='';gaps.forEach(([v,l])=>{const b=el('button','pill',l);b.type='button';b.setAttribute('aria-pressed',String((settings.gap||'off')===v));b.addEventListener('click',()=>{settings.gap=v;saveSettings();paintSheet()});gp.appendChild(b)});
   const sp=$('speeds');sp.textContent='';
   SPEEDS.forEach(r=>{const b=el('button','pill',fmtRate(r));b.type='button';b.setAttribute('aria-pressed',String(r===settings.rate));b.addEventListener('click',()=>setRate(r));sp.appendChild(b)});
 }
