@@ -13,7 +13,7 @@
 /* One calm reading column, a quiet top bar, and a fixed player under the text. */
 :root{
   --bg:#F6F6F4; --card:#FFFFFF; --text:#1C1C1C; --muted:#6B6B6B;
-  --line:rgba(28,28,40,.10); --accent:#4352C4; --bad:#B4483F; --ok:#2E7D4F;
+  --line:rgba(28,28,40,.10); --accent:hsl(var(--hh) 52% 52%); --bad:#B4483F; --ok:#2E7D4F;
   --hh:265; --ss:80%; --sl:91%; --ws:78%; --wl:82%;
   --ui:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
   --read:"Literata","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif;
@@ -22,20 +22,20 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]):not([data-theme="sepia"]){
     --bg:#111111; --card:#1C1C1C; --text:#F2F2F2; --muted:#9A9A9A;
-    --line:rgba(235,235,255,.11); --accent:#98A4FF; --bad:#E58B82; --ok:#7CCB98;
+    --line:rgba(235,235,255,.11); --accent:hsl(var(--hh) 70% 72%); --bad:#E58B82; --ok:#7CCB98;
     --ss:38%; --sl:26%; --ws:48%; --wl:38%;
     color-scheme:dark;
   }
 }
 :root[data-theme="sepia"]{
   --bg:#F4ECD8; --card:#FBF6EA; --text:#3B3226; --muted:#7A6C58;
-  --line:rgba(80,55,20,.14); --accent:#8A5A2B; --bad:#A4442F; --ok:#4F7A3A;
+  --line:rgba(80,55,20,.14); --accent:hsl(var(--hh) 40% 46%); --bad:#A4442F; --ok:#4F7A3A;
   --ss:50%; --sl:86%; --ws:55%; --wl:76%;
   color-scheme:light;
 }
 :root[data-theme="dark"]{
   --bg:#111111; --card:#1C1C1C; --text:#F2F2F2; --muted:#9A9A9A;
-  --line:rgba(235,235,255,.11); --accent:#98A4FF; --bad:#E58B82; --ok:#7CCB98;
+  --line:rgba(235,235,255,.11); --accent:hsl(var(--hh) 70% 72%); --bad:#E58B82; --ok:#7CCB98;
   --ss:38%; --sl:26%; --ws:48%; --wl:38%;
   color-scheme:dark;
 }
@@ -52,7 +52,7 @@ button:disabled{opacity:.55;cursor:default}
 .brand{background:none;border:0;padding:4px 2px;font-weight:700;font-size:18px;letter-spacing:-.01em}
 .ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:14px;font-weight:600}
 .ghost:hover{border-color:var(--muted)}
-.primary{background:var(--accent);color:var(--bg);border:0;border-radius:8px;padding:10px 16px;font-weight:700}
+.primary{background:var(--text);color:var(--bg);border:0;border-radius:999px;padding:10px 18px;font-weight:700}
 .primary:hover{filter:brightness(1.08)}
 .linkbtn{background:none;border:0;padding:4px 0;color:var(--muted);font-size:14px;font-weight:600}
 .linkbtn:hover{color:var(--text)}
@@ -124,7 +124,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
 .bar .in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 .ctl{display:flex;align-items:center;gap:10px}
-.playbtn{width:52px;height:52px;border-radius:50%;border:0;background:var(--accent);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none}
+.playbtn{width:52px;height:52px;border-radius:50%;border:0;background:hsl(var(--hh) var(--ws) var(--wl));color:var(--text);box-shadow:0 6px 16px hsl(var(--hh) 60% 50% / .28);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none}
 .playbtn:hover{filter:brightness(1.08)}
 .playbtn svg{width:24px;height:24px}
 .ctl .icon{width:44px;height:44px;border-radius:50%;padding:0}
@@ -145,7 +145,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .stepper .val{flex:1;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
 .pills{display:flex;gap:8px;flex-wrap:wrap}
 .pill{min-width:56px;height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
-.pill[aria-pressed="true"]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.pill[aria-pressed="true"]{background:hsl(var(--hh) var(--ws) var(--wl));color:var(--text);border-color:transparent}
 .themes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .th{height:56px;border-radius:12px;border:2px solid var(--line);font-family:var(--read);font-weight:600;font-size:15px}
 .th[aria-pressed="true"]{border-color:var(--accent)}
@@ -317,7 +317,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='1.6.1';
+const VERSION='1.7.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
