@@ -133,7 +133,13 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .status{font-size:13px;color:var(--muted);min-height:1.3em;margin:0}
 .status.bad{color:var(--bad);font-weight:600}
 @media (max-width:480px){ article{font-size:calc(18px * var(--fs,1))} main{padding-top:22px} }
-.speedchip{margin-left:auto;height:40px;padding:0 14px;border-radius:999px;border:0;background:var(--sc);color:var(--onsc);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.ccbtn{height:40px;min-width:48px;padding:0 10px;border-radius:999px;border:1.5px solid var(--line);background:none;font-weight:800;font-size:13px;letter-spacing:.06em;margin-left:auto}
+.ccbtn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.cc{font-family:var(--read);font-size:calc(23px * var(--fs,1));line-height:1.55;max-height:calc(4 * 1.55em);overflow-y:auto;scrollbar-width:none;padding:2px 0 4px;color:var(--text)}
+.cc::-webkit-scrollbar{display:none}
+.cc .w{cursor:pointer}
+body.ccon article{padding-bottom:380px}
+.speedchip{height:40px;padding:0 14px;border-radius:999px;border:0;background:var(--sc);color:var(--onsc);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:20;opacity:0;transition:opacity .2s ease}
 .scrim.open{opacity:1}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-height:86vh;overflow-y:auto;overscroll-behavior:contain;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:10px 20px 22px;padding-bottom:max(22px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .24s cubic-bezier(.2,.8,.2,1)}
@@ -293,10 +299,12 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 
 <div class="bar" id="bar" hidden>
   <div class="in">
+    <div class="cc" id="cc" hidden aria-live="off"></div>
     <div class="ctl">
       <button class="ghost icon" id="prev" type="button" aria-label="Previous sentence" title="Previous sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
       <button class="playbtn" id="playBtn" type="button" aria-label="Play"></button>
       <button class="ghost icon" id="next" type="button" aria-label="Next sentence" title="Next sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button>
+      <button class="ccbtn" id="ccBtn" type="button" aria-label="Captions" title="Captions (current sentence, large)" aria-pressed="false">CC</button>
       <button class="speedchip" id="rate" type="button" aria-label="Speed and reading options"></button>
     </div>
     <p class="status" id="note" role="status"></p>
@@ -333,7 +341,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='2.2.0';
+const VERSION='2.3.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -531,7 +539,7 @@ function applyTheme(){
   Object.keys(map).forEach(k=>r.style.setProperty(map[k],sc[k]));
   const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute('content',sc.bg);
   r.style.setProperty('--hh',String(settings.color==='auto'?SEED_HUE[settings.seed]:COLORS[settings.color][1]));
-  document.body.className='hl-'+(settings.hl||'both')+(settings.fade?' fade':'');
+  document.body.className='hl-'+(settings.hl||'both')+(settings.fade?' fade':'')+(settings.cc?' ccon':'');
   if(settings.theme==='light'||settings.theme==='dark'||settings.theme==='sepia')r.setAttribute('data-theme',settings.theme);else r.removeAttribute('data-theme');
   r.style.setProperty('--fs',String(settings.fs||1));
 }
@@ -799,6 +807,7 @@ function openDoc(id){
   P.segs.forEach((seg,i)=>idbGet(audioKey(voice,seg.text)).then(rec=>{if(rec&&P.doc===doc&&rec.words)applyRec(i,rec);if(i===P.segs.length-1)offlineLabel()}));
   setMedia();
   offlineLabel();
+  P.ccKey=null;applyCC();
 }
 function setActive(i){
   P.i=i;
@@ -852,10 +861,37 @@ function setWord(k){
   for(let j=0;j<seg.sentEls.length;j++)seg.sentEls[j].classList.toggle('past',j<cs);
   if(!sp)return;
   sp.classList.add('on');if(sn)sn.classList.add('on');
+  if(settings.cc)ccShow(seg,k);
   if(settings.autoflow&&!audio.paused){
     const r=sp.getBoundingClientRect(),barH=$('bar').offsetHeight||120;
     if(r.top<70||r.bottom>window.innerHeight-barH-30)sp.scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
   }
+}
+/* ---------- CC: the sentence being heard, large, above the player ---------- */
+function ccRender(seg,si){
+  const box=$('cc');box.textContent='';P.ccMap={};P.ccKey=P.loaded+':'+si;
+  const r=seg.sents[si];if(!r)return;
+  let p=r.s;
+  (seg.words||[]).forEach((w,k)=>{
+    if(seg.wsent[k]!==si)return;
+    if(w.s>p)box.appendChild(document.createTextNode(seg.text.slice(p,w.s)));
+    const sp=el('span','w',seg.text.slice(w.s,w.e));sp.dataset.k=String(k);box.appendChild(sp);P.ccMap[k]=sp;p=w.e;
+  });
+  if(p<r.e)box.appendChild(document.createTextNode(seg.text.slice(p,r.e)));
+  box.scrollTop=0;
+}
+function ccShow(seg,k){
+  const si=seg.wsent[k];
+  if(P.ccKey!==P.loaded+':'+si)ccRender(seg,si);
+  const box=$('cc');box.querySelectorAll('.w.on').forEach(x=>x.classList.remove('on'));
+  const sp=P.ccMap&&P.ccMap[k];if(!sp)return;sp.classList.add('on');
+  const lh=sp.offsetHeight||30;
+  if(sp.offsetTop+lh>box.scrollTop+box.clientHeight||sp.offsetTop<box.scrollTop)box.scrollTop=Math.max(0,sp.offsetTop-lh);
+}
+function applyCC(){
+  const on=!!settings.cc;$('cc').hidden=!on;document.body.classList.toggle('ccon',on);
+  $('ccBtn').setAttribute('aria-pressed',String(on));
+  if(on){P.ccKey=null;const seg=P.segs[P.loaded];if(seg&&seg.words&&P.cur>=0)ccShow(seg,P.cur);else if(P.segs[P.i]&&P.segs[P.i].words)ccRender(P.segs[P.i],0)}
 }
 function clearWord(){$('page').querySelectorAll('.w.on,.sent.on').forEach(x=>x.classList.remove('on'));P.cur=-1;P.sent=null}
 function tick(){
@@ -1050,6 +1086,13 @@ audio.addEventListener('ended',()=>{
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&view==='reader')savePos()});
 
+$('ccBtn').addEventListener('click',()=>{settings.cc=!settings.cc;saveSettings();applyCC()});
+$('cc').addEventListener('click',e=>{
+  const w=e.target.closest('.w');if(!w)return;
+  const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
+  audio.currentTime=seg.words[+w.dataset.k].ms/1000+0.001;
+  if(!P.playing)play();else tick();
+});
 $('page').addEventListener('click',e=>{
   if(window.getSelection&&String(window.getSelection()).length)return; /* the reader is selecting text */
   const segEl=e.target.closest('.seg');if(!segEl)return;
