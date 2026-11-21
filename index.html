@@ -148,7 +148,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 body.ccon article{padding-bottom:400px}
 body.ccon #page .w.on{background:none}
 body.ccon #page .sent.on{background:none}
-body.ccon #page .seg.past,body.ccon #page .sent.past{color:var(--muted);transition:color .2s ease}
+body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past{color:var(--muted);transition:color .15s ease}
 .ccsent{background:hsl(var(--hh) var(--ss) var(--sl));border-radius:6px;padding:1px 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .bar{z-index:12}
 .focus{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:72px 26px 200px;overflow-y:auto}
@@ -372,7 +372,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past{color:var(--muted);transiti
 <script>
 (function(){
 'use strict';
-const VERSION='2.4.3';
+const VERSION='2.5.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -852,7 +852,7 @@ function openDoc(id){
 function setActive(i){
   P.i=i;
   /* parts already read keep their faded sentences (no flash); parts ahead are cleared */
-  P.segs.forEach((s,k)=>{s.el.classList.toggle('past',k<i);if(k>i)s.sentEls.forEach(e=>e.classList.remove('past'))});
+  P.segs.forEach((s,k)=>{s.el.classList.toggle('past',k<i);if(k>i){s.sentEls.forEach(e=>e.classList.remove('past'));if(s.wpast){s.spans.forEach(e=>e.classList.remove('past'));s.wpast=false}}});
   P.leftShown='';
   progress();
 }
@@ -899,6 +899,9 @@ function setWord(k){
   if(sn!==P.sent){$('page').querySelectorAll('.sent.on').forEach(x=>{if(x!==sn)x.classList.remove('on')});P.sent=sn}
   const cs=sp?seg.wsent[k]:-1;
   for(let j=0;j<seg.sentEls.length;j++)seg.sentEls[j].classList.toggle('past',j<cs);
+  /* with CC on, the text fades word by word so you can see where the voice is */
+  if(settings.cc||seg.wpast)for(let j=0;j<seg.spans.length;j++)seg.spans[j].classList.toggle('past',!!settings.cc&&j<k);
+  seg.wpast=!!settings.cc;
   if(!sp)return;
   sp.classList.add('on');if(sn)sn.classList.add('on');
   if(settings.cc)ccShow(seg,k);
