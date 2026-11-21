@@ -52,7 +52,7 @@ button:disabled{opacity:.55;cursor:default}
 .brand{background:none;border:0;padding:4px 2px;font-weight:700;font-size:18px;letter-spacing:-.01em}
 .ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:14px;font-weight:600}
 .ghost:hover{border-color:var(--muted)}
-.primary{background:var(--text);color:var(--bg);border:0;border-radius:999px;padding:10px 18px;font-weight:700}
+.primary{background:var(--accent);color:var(--on-accent);border:0;border-radius:999px;padding:10px 18px;font-weight:700}
 .primary:hover{filter:brightness(1.08)}
 .linkbtn{background:none;border:0;padding:4px 0;color:var(--muted);font-size:14px;font-weight:600}
 .linkbtn:hover{color:var(--text)}
@@ -93,7 +93,7 @@ label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weigh
 
 .readhead{display:flex;flex-direction:column;gap:8px;margin-bottom:26px}
 .prog{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-.track{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.track{height:3px;background:var(--pc,var(--line));border-radius:2px;overflow:hidden}
 .track i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s ease}
 
 article{font-family:var(--read);font-size:calc(20px * var(--fs,1));line-height:1.78;max-width:34em;padding-bottom:220px}
@@ -117,6 +117,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .w.on{background:hsl(var(--hh) var(--ws) var(--wl))}
 .swatches{display:flex;gap:12px;flex-wrap:wrap}
 .sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);padding:0;background:hsl(var(--c) var(--ws) var(--wl))}
+.sw.auto{background:conic-gradient(from 0deg,#C9B4F5,#A8E6CF,#F7C6A8,#F3DEA0,#F2A9C5,#AFD3F2,#C9B4F5)}
 .sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--text)}
 .preview{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .sample{font-family:var(--read);font-size:18px;line-height:1.7;margin:0}
@@ -124,7 +125,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
 .bar .in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 .ctl{display:flex;align-items:center;gap:10px}
-.playbtn{width:52px;height:52px;border-radius:50%;border:0;background:hsl(var(--hh) var(--ws) var(--wl));color:var(--text);box-shadow:0 6px 16px hsl(var(--hh) 60% 50% / .28);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none}
+.playbtn{width:52px;height:52px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 35%,transparent);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none}
 .playbtn:hover{filter:brightness(1.08)}
 .playbtn svg{width:24px;height:24px}
 .ctl .icon{width:44px;height:44px;border-radius:50%;padding:0}
@@ -132,7 +133,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .status{font-size:13px;color:var(--muted);min-height:1.3em;margin:0}
 .status.bad{color:var(--bad);font-weight:600}
 @media (max-width:480px){ article{font-size:calc(18px * var(--fs,1))} main{padding-top:22px} }
-.speedchip{margin-left:auto;height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.speedchip{margin-left:auto;height:40px;padding:0 14px;border-radius:999px;border:0;background:var(--sc);color:var(--onsc);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:20;opacity:0;transition:opacity .2s ease}
 .scrim.open{opacity:1}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:10px 20px 22px;padding-bottom:max(22px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .24s cubic-bezier(.2,.8,.2,1)}
@@ -145,7 +146,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .stepper .val{flex:1;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
 .pills{display:flex;gap:8px;flex-wrap:wrap}
 .pill{min-width:56px;height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
-.pill[aria-pressed="true"]{background:hsl(var(--hh) var(--ws) var(--wl));color:var(--text);border-color:transparent}
+.pill[aria-pressed="true"]{background:var(--sc);color:var(--onsc);border-color:transparent}
 .themes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .th{height:56px;border-radius:12px;border:2px solid var(--line);font-family:var(--read);font-weight:600;font-size:15px}
 .th[aria-pressed="true"]{border-color:var(--accent)}
@@ -235,6 +236,22 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
     </div>
 
     <div class="stack">
+      <h2 class="label">Appearance</h2>
+      <label class="field" for="themeSel">Theme
+        <select id="themeSel">
+          <option value="system">Same as device</option>
+          <option value="light">Light</option>
+          <option value="sepia">Sepia</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+      <div class="stack" style="gap:10px">
+        <span class="muted small" style="font-weight:700">App color</span>
+        <div class="swatches" id="seedSwatches" role="group" aria-label="App color"></div>
+      </div>
+    </div>
+
+    <div class="stack">
       <h2 class="label">Reading</h2>
       <div class="stack" style="gap:10px">
         <span class="muted small" style="font-weight:700">Highlight color</span>
@@ -251,14 +268,6 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
       <label class="check" for="fadeChk"><input id="fadeChk" type="checkbox"> Fade text already read</label>
       <div class="preview"><span class="muted small" style="font-weight:700">Preview</span><p class="sample" aria-hidden="true"><span class="sent past">This sentence was already read.</span> <span class="sent on">The one you are hearing is <span class="w on">shaded</span> softly.</span> <span class="sent">The next one waits its turn.</span></p></div>
       <label class="check" for="autoflow"><input id="autoflow" type="checkbox"> Keep the current word in view</label>
-      <label class="field" for="themeSel">Theme
-        <select id="themeSel">
-          <option value="system">Same as device</option>
-          <option value="light">Light</option>
-          <option value="sepia">Sepia</option>
-          <option value="dark">Dark</option>
-        </select>
-      </label>
     </div>
 
     <div class="stack">
@@ -317,7 +326,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='1.7.0';
+const VERSION='1.8.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -483,7 +492,7 @@ const SAMPLE=[
 'Over time, the pages add up. Words that once looked strange begin to feel familiar. As one teacher liked to say, “You do not need to understand everything today. You only need to come back tomorrow.”'
 ].join('\n\n');
 
-const settings=Object.assign({rate:1,autoflow:true,theme:'system',color:'lilac',hl:'both',voice:'en-US-AvaMultilingualNeural'},load('lexiflow.settings',{})||{});
+const settings=Object.assign({rate:1,autoflow:true,theme:'system',color:'auto',seed:'lilac',hl:'both',voice:'en-US-AvaMultilingualNeural'},load('lexiflow.settings',{})||{});
 const azure=Object.assign({key:'',region:'eastus'},load('lexiflow.azure',{})||{});
 let docs=load('lexiflow.docs',null);
 if(!Array.isArray(docs))docs=[{id:'sample',title:'Small Steps, Clear Mind',raw:SAMPLE,sample:true,bi:0,ms:0,nb:0,updatedAt:0}];
@@ -492,15 +501,26 @@ const saveSettings=()=>save('lexiflow.settings',settings);
 const hasKey=()=>!!(azure.key&&azure.region);
 if(settings.hl==='fade'){settings.hl='both';settings.fade=true}
 const COLORS={lilac:['Lilac',265],mint:['Mint',158],peach:['Peach',20],butter:['Butter',46],rose:['Rose',340],sky:['Sky',202]};
-{const old={purple:'lilac',blue:'sky',green:'mint',orange:'peach',yellow:'butter',pink:'rose'};if(old[settings.color])settings.color=old[settings.color];if(!COLORS[settings.color])settings.color='lilac'}
+{const old={purple:'lilac',blue:'sky',green:'mint',orange:'peach',yellow:'butter',pink:'rose'};if(old[settings.color])settings.color=old[settings.color];if(settings.color!=='auto'&&!COLORS[settings.color])settings.color='auto';if(!settings.seed)settings.seed=COLORS[settings.color]?settings.color:'lilac'}
+const SCHEMES={"lilac": {"light": {"bg": "#fef7ff", "card": "#ffffff", "low": "#f8f1fa", "cont": "#f2ecf4", "high": "#ece6ee", "text": "#1d1b20", "muted": "#49454e", "line": "#cbc4cf", "accent": "#67558e", "onAccent": "#ffffff", "pc": "#eaddff", "onpc": "#4e3d75", "sc": "#e9def8", "onsc": "#4a4358"}, "dark": {"bg": "#141218", "card": "#0f0d13", "low": "#1d1b20", "cont": "#211f24", "high": "#2b292f", "text": "#e7e0e8", "muted": "#cbc4cf", "line": "#49454e", "accent": "#d1bcfd", "onAccent": "#37265c", "pc": "#4e3d75", "onpc": "#eaddff", "sc": "#4a4358", "onsc": "#e9def8"}}, "mint": {"light": {"bg": "#f5fbf5", "card": "#ffffff", "low": "#eff5f0", "cont": "#eaefea", "high": "#e4eae4", "text": "#171d1a", "muted": "#404944", "line": "#bfc9c2", "accent": "#1d6b50", "onAccent": "#ffffff", "pc": "#a7f2d0", "onpc": "#00513a", "sc": "#cfe9da", "onsc": "#354b41"}, "dark": {"bg": "#0f1512", "card": "#0a0f0d", "low": "#171d1a", "cont": "#1b211e", "high": "#252b28", "text": "#dee4df", "muted": "#bfc9c2", "line": "#404944", "accent": "#8bd5b5", "onAccent": "#003827", "pc": "#00513a", "onpc": "#a7f2d0", "sc": "#354b41", "onsc": "#cfe9da"}}, "peach": {"light": {"bg": "#fff8f6", "card": "#ffffff", "low": "#fff1ec", "cont": "#fceae4", "high": "#f6e5de", "text": "#231a16", "muted": "#52443d", "line": "#d8c2ba", "accent": "#8e4d2f", "onAccent": "#ffffff", "pc": "#ffdbcd", "onpc": "#71361a", "sc": "#ffdbcd", "onsc": "#5d4034"}, "dark": {"bg": "#1a110e", "card": "#140c09", "low": "#231a16", "cont": "#271e1a", "high": "#322824", "text": "#f1dfd8", "muted": "#d8c2ba", "line": "#52443d", "accent": "#ffb595", "onAccent": "#542106", "pc": "#71361a", "onpc": "#ffdbcd", "sc": "#5d4034", "onsc": "#ffdbcd"}}, "butter": {"light": {"bg": "#fff8f2", "card": "#ffffff", "low": "#fcf2e5", "cont": "#f6eddf", "high": "#f1e7d9", "text": "#1f1b13", "muted": "#4d4639", "line": "#d0c5b4", "accent": "#775a0b", "onAccent": "#ffffff", "pc": "#ffdf9c", "onpc": "#5b4300", "sc": "#f4e0bb", "onsc": "#52452a"}, "dark": {"bg": "#17130b", "card": "#110e07", "low": "#1f1b13", "cont": "#231f17", "high": "#2e2921", "text": "#ebe1d4", "muted": "#d0c5b4", "line": "#4d4639", "accent": "#e8c26c", "onAccent": "#3f2e00", "pc": "#5b4300", "onpc": "#ffdf9c", "sc": "#52452a", "onsc": "#f4e0bb"}}, "rose": {"light": {"bg": "#fff8f8", "card": "#ffffff", "low": "#fff0f3", "cont": "#faeaed", "high": "#f4e4e7", "text": "#22191c", "muted": "#514347", "line": "#d5c2c6", "accent": "#8b4a63", "onAccent": "#ffffff", "pc": "#ffd9e4", "onpc": "#6f334b", "sc": "#ffd9e4", "onsc": "#5a3f48"}, "dark": {"bg": "#191114", "card": "#130c0e", "low": "#22191c", "cont": "#261d20", "high": "#31282a", "text": "#efdfe2", "muted": "#d5c2c6", "line": "#514347", "accent": "#ffb0cb", "onAccent": "#541d34", "pc": "#6f334b", "onpc": "#ffd9e4", "sc": "#5a3f48", "onsc": "#ffd9e4"}}, "sky": {"light": {"bg": "#f8f9ff", "card": "#ffffff", "low": "#f2f3f9", "cont": "#eceef4", "high": "#e6e8ee", "text": "#191c20", "muted": "#42474e", "line": "#c2c7cf", "accent": "#33618d", "onAccent": "#ffffff", "pc": "#d0e4ff", "onpc": "#154974", "sc": "#d6e4f7", "onsc": "#3b4857"}, "dark": {"bg": "#101418", "card": "#0b0e12", "low": "#191c20", "cont": "#1d2024", "high": "#272a2f", "text": "#e0e2e8", "muted": "#c2c7cf", "line": "#42474e", "accent": "#9ecafc", "onAccent": "#003256", "pc": "#154974", "onpc": "#d0e4ff", "sc": "#3b4857", "onsc": "#d6e4f7"}}};
+const SEED_HUE={lilac:259,mint:158,peach:19,butter:43,rose:334,sky:208};
+const SEPIA={bg:'#F4ECD8',card:'#FBF6EA',low:'#F8F0DF',cont:'#F1E7D2',high:'#EBE0C9',text:'#3B3226',muted:'#6E604C',line:'#DCCDB1'};
+const darkMq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+function isDark(){return settings.theme==='dark'||(settings.theme==='system'&&darkMq&&darkMq.matches)}
 function applyTheme(){
   const r=document.documentElement;
-  r.style.setProperty('--hh',String(COLORS[settings.color][1]));
+  if(!SCHEMES[settings.seed])settings.seed='lilac';
+  const sc=Object.assign({},SCHEMES[settings.seed][isDark()?'dark':'light'],settings.theme==='sepia'?SEPIA:{});
+  const map={bg:'--bg',card:'--card',text:'--text',muted:'--muted',line:'--line',accent:'--accent',onAccent:'--on-accent',pc:'--pc',sc:'--sc',onsc:'--onsc'};
+  Object.keys(map).forEach(k=>r.style.setProperty(map[k],sc[k]));
+  const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute('content',sc.bg);
+  r.style.setProperty('--hh',String(settings.color==='auto'?SEED_HUE[settings.seed]:COLORS[settings.color][1]));
   document.body.className='hl-'+(settings.hl||'both')+(settings.fade?' fade':'');
   if(settings.theme==='light'||settings.theme==='dark'||settings.theme==='sepia')r.setAttribute('data-theme',settings.theme);else r.removeAttribute('data-theme');
   r.style.setProperty('--fs',String(settings.fs||1));
 }
 applyTheme();
+if(darkMq&&darkMq.addEventListener)darkMq.addEventListener('change',()=>{if(settings.theme==='system')applyTheme()});
 
 /* ---------- usage counter (this device only; Azure's own count is the real one) ---------- */
 function monthKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)}
@@ -1027,7 +1047,18 @@ $('testVoice').addEventListener('click',async()=>{
   finally{azure.key=old.key;azure.region=old.region;btn.disabled=false;refreshUsage()}
 });
 function renderSwatches(){
+  const sb=$('seedSwatches');sb.textContent='';
+  Object.keys(SCHEMES).forEach(name=>{
+    const b=el('button','sw');b.type='button';b.style.background=SCHEMES[name].light.accent;
+    b.setAttribute('aria-label',COLORS[name][0]);b.title=COLORS[name][0];
+    b.setAttribute('aria-pressed',String(settings.seed===name));
+    b.addEventListener('click',()=>{settings.seed=name;saveSettings();applyTheme();renderSwatches()});
+    sb.appendChild(b);
+  });
   const box=$('swatches');box.textContent='';
+  const au=el('button','sw auto');au.type='button';au.setAttribute('aria-label','Match app color');au.title='Match app color';
+  au.setAttribute('aria-pressed',String(settings.color==='auto'));
+  au.addEventListener('click',()=>{settings.color='auto';saveSettings();applyTheme();renderSwatches()});box.appendChild(au);
   Object.keys(COLORS).forEach(name=>{
     const b=el('button','sw');b.type='button';b.style.setProperty('--c',String(COLORS[name][1]));
     b.setAttribute('aria-label',COLORS[name][0]);b.title=COLORS[name][0];
