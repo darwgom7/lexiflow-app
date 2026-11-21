@@ -333,7 +333,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='2.1.1';
+const VERSION='2.2.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -660,7 +660,9 @@ function docCard(d,primary){
   const c=el('div','card'),left=el('div'),t=el('div','title',d.title);
   if(d.sample)t.appendChild(el('span','tag','Sample'));
   left.appendChild(t);
-  left.appendChild(el('div','meta',d.done?'Finished':d.nb?('Part '+Math.min(d.nb,(d.bi||0)+1)+' of '+d.nb):'Not started'));
+  const mins=countWords(d.raw)*MS_PER_WORD/(settings.rate||1),pc=pct(d)/100;
+  const est=d.done?'':' · '+(d.nb&&d.bi?fmtLeft(mins*(1-pc)).trim()+' left':fmtLeft(mins).trim());
+  left.appendChild(el('div','meta',(d.done?'Finished':d.nb?('Part '+Math.min(d.nb,(d.bi||0)+1)+' of '+d.nb):'Not started')+est));
   const mini=el('div','mini'),fill=el('i');fill.style.width=pct(d)+'%';mini.appendChild(fill);left.appendChild(mini);
   const act=el('div','actions');
   const rm=el('button','linkbtn','Remove');rm.type='button';
@@ -802,13 +804,42 @@ function setActive(i){
   P.i=i;
   /* parts already read keep their faded sentences (no flash); parts ahead are cleared */
   P.segs.forEach((s,k)=>{s.el.classList.toggle('past',k<i);if(k>i)s.sentEls.forEach(e=>e.classList.remove('past'))});
-  $('progText').textContent='Part '+(i+1)+' of '+P.segs.length;
+  P.leftShown='';
   progress();
 }
 function progress(){
   const n=P.segs.length||1;let f=P.i;
   if(P.loaded===P.i&&audio.duration)f+=Math.min(1,audio.currentTime/audio.duration);
   $('progFill').style.width=(f/n*100)+'%';
+  const left=timeLeft(),txt='Part '+(P.i+1)+' of '+P.segs.length+(left?' · '+left:'');
+  if(txt!==P.leftShown){P.leftShown=txt;$('progText').textContent=txt}
+}
+/* ---------- time estimates ---------- */
+const MS_PER_WORD=380; /* about 160 words a minute at 1.0x */
+const countWords=t=>(String(t).match(/[A-Za-zÀ-ÿ0-9’']+/g)||[]).length;
+function partMs(seg){return seg.words&&seg.words.length?seg.words[seg.words.length-1].ms+500:countWords(seg.text)*MS_PER_WORD}
+/* Listening time of a part at the current speed, counting repeats and pauses. null = endless. */
+function partTotal(seg){
+  const rate=settings.rate||1,play=partMs(seg)/rate;
+  const shadow=(seg.kind==='paragraph'||seg.kind==='li');
+  const rep=shadow?(settings.rep??1):1;if(rep===0)return null;
+  let gap=0;const g=shadow?(settings.gap||'off'):'off',n=settings.unit==='para'?1:seg.sents.length;
+  if(g==='auto')gap=play+600*n;else if(g!=='off')gap=(+g)*n;
+  return rep*(play+gap);
+}
+function fmtLeft(ms){
+  const m=Math.round(ms/60000);
+  if(m<1)return '<1 min';
+  return m<60?m+' min':Math.floor(m/60)+' h '+(m%60?m%60+' min':'');
+}
+function timeLeft(){
+  if(!P.segs.length)return '';
+  let total=0;
+  for(let k=P.i;k<P.segs.length;k++){
+    const t=partTotal(P.segs[k]);if(t==null)return 'looping';
+    if(k===P.i&&P.loaded===k&&audio.duration)total+=t*Math.max(0,1-audio.currentTime/audio.duration);else total+=t;
+  }
+  return fmtLeft(total).trim()+' left';
 }
 function setWord(k){
   if(k===P.cur)return;
@@ -1197,6 +1228,7 @@ const SPEEDS=[0.7,0.8,0.9,1,1.1,1.25,1.5];
 const fmtRate=r=>(r%1===0?r.toFixed(1):String(r))+'x';
 function setRate(r){settings.rate=r;audio.playbackRate=r;saveSettings();paintSheet()}
 function paintSheet(){
+  if(view==='reader'&&P.segs.length)progress();
   $('rate').textContent=fmtRate(settings.rate)+((settings.rep??1)!==1?' · '+((settings.rep??1)===0?'∞':settings.rep+'×'):'')+((settings.gap||'off')!=='off'?' · ⏸':'');
   $('fsVal').textContent=Math.round((settings.fs||1)*100)+'%';
   document.querySelectorAll('#themes .th').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===settings.theme)));
