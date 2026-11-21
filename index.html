@@ -272,7 +272,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='1.5.2';
+const VERSION='1.5.3';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -313,12 +313,7 @@ function parseDoc(raw){
     let para=[];
     const flush=()=>{if(para.length){push('paragraph',para.join(' '));para=[]}};
     const plain=lines.length===1&&!/^(#{1,6}\s|>|\||[-*_]{3,}$)/.test(lines[0])&&!LIST_RE.test(lines[0]);
-    if(plain&&isShortTitle(lines[0])){
-      const prev=blocks[blocks.length-1],first=!blocks.length;
-      const type=first?'heading':(prev&&(prev.type==='heading'||prev.type==='section')&&!prev.hasSub)?'subheading':'section';
-      if(type==='subheading')prev.hasSub=true;
-      push(type,lines[0]);return;
-    }
+    if(plain&&isShortTitle(lines[0])){push('cand',lines[0]);return}
     lines.forEach(line=>{
       let m;
       if(/^([-*_])\1{2,}$/.test(line.replace(/\s/g,''))){flush();return}            /* --- rule */
@@ -336,6 +331,20 @@ function parseDoc(raw){
     });
     flush();
   });
+  /* Short lines on their own: 1 = a title, 2 = title and subtitle, 3 or more in a row = plain lines (a table or list pasted as text). */
+  for(let i=0;i<blocks.length;){
+    if(blocks[i].type!=='cand'){i++;continue}
+    let j=i;while(j<blocks.length&&blocks[j].type==='cand')j++;
+    let k=i;
+    if(i===0){blocks[0].type='heading';k=1}
+    const n=j-k;
+    if(i===0&&n===1&&blocks[0].type==='heading')blocks[k].type='subheading';
+    else if(n===1)blocks[k].type='section';
+    else if(n===2){blocks[k].type='section';blocks[k+1].type='subheading'}
+    else for(let m=k;m<j;m++)blocks[m].type='paragraph';
+    i=j;
+  }
+  /* a subtitle written with ## right under the first title */
   return blocks;
 }
 /* Turns copied web content (headings, lists, tables) into the plain text LexiFlow keeps. */
