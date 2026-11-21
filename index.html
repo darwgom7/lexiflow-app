@@ -135,10 +135,26 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 @media (max-width:480px){ article{font-size:calc(18px * var(--fs,1))} main{padding-top:22px} }
 .ccbtn{height:40px;min-width:48px;padding:0 10px;border-radius:999px;border:1.5px solid var(--line);background:none;font-weight:800;font-size:13px;letter-spacing:.06em;margin-left:auto}
 .ccbtn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
-.cc{font-family:var(--read);font-size:calc(23px * var(--fs,1));line-height:1.55;max-height:calc(4 * 1.55em);overflow-y:auto;scrollbar-width:none;padding:2px 0 4px;color:var(--text)}
-.cc::-webkit-scrollbar{display:none}
-.cc .w{cursor:pointer}
-body.ccon article{padding-bottom:380px}
+.cccard{position:relative;background:var(--bg);border-radius:18px;padding:14px 46px;text-align:center}
+.cctext{font-family:var(--read);font-size:calc(22px * var(--fs,1));line-height:1.5;max-height:calc(4 * 1.5em);overflow-y:auto;scrollbar-width:none;color:var(--text)}
+.cctext::-webkit-scrollbar{display:none}
+.cctext .w,.fcur .w{cursor:pointer}
+.cctools{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:2px}
+.cctools button{width:34px;height:34px;border:0;background:none;color:var(--muted);border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
+.cctools button:hover{color:var(--text)}
+.ccturn{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--accent) 75%,var(--text));margin-bottom:8px;font-variant-numeric:tabular-nums}
+.ccturn::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.ccturn[hidden]{display:none}
+body.ccon article{padding-bottom:400px}
+body.ccon #page .w.on{background:none}
+body.ccon #page .sent.on{background:hsl(var(--hh) var(--ss) var(--sl) / .6)}
+.bar{z-index:12}
+.focus{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:72px 26px 200px;overflow-y:auto}
+.focus[hidden]{display:none}
+#focusExit{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;color:var(--muted)}
+.fin{max-width:640px;width:100%;text-align:center;display:flex;flex-direction:column;gap:24px}
+.fside{margin:0;font-family:var(--read);font-size:calc(17px * var(--fs,1));line-height:1.5;color:var(--muted);opacity:.75}
+.fcur{margin:0;font-family:var(--read);font-size:calc(27px * var(--fs,1));line-height:1.5;color:var(--text)}
 .speedchip{height:40px;padding:0 14px;border-radius:999px;border:0;background:var(--sc);color:var(--onsc);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:20;opacity:0;transition:opacity .2s ease}
 .scrim.open{opacity:1}
@@ -299,7 +315,11 @@ body.ccon article{padding-bottom:380px}
 
 <div class="bar" id="bar" hidden>
   <div class="in">
-    <div class="cc" id="cc" hidden aria-live="off"></div>
+    <div class="cccard" id="cc" hidden>
+      <div class="ccturn" id="ccTurn" hidden></div>
+      <div class="cctext" id="ccText"></div>
+      <div class="cctools"><button type="button" id="ccFocus" aria-label="Focus mode" title="Focus mode"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg></button><button type="button" id="ccClose" aria-label="Hide captions" title="Hide captions"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button></div>
+    </div>
     <div class="ctl">
       <button class="ghost icon" id="prev" type="button" aria-label="Previous sentence" title="Previous sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
       <button class="playbtn" id="playBtn" type="button" aria-label="Play"></button>
@@ -311,6 +331,15 @@ body.ccon article{padding-bottom:380px}
   </div>
 </div>
 
+<div class="focus" id="focus" hidden>
+  <button type="button" class="iconbtn" id="focusExit" aria-label="Exit focus mode" title="Exit focus mode"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg></button>
+  <div class="fin">
+    <p class="fside" id="fPrev"></p>
+    <div class="ccturn" id="fTurn" hidden></div>
+    <p class="fcur" id="fCur"></p>
+    <p class="fside" id="fNext"></p>
+  </div>
+</div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Reading options" hidden>
   <div class="in">
@@ -341,7 +370,7 @@ body.ccon article{padding-bottom:380px}
 <script>
 (function(){
 'use strict';
-const VERSION='2.3.0';
+const VERSION='2.4.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -539,7 +568,7 @@ function applyTheme(){
   Object.keys(map).forEach(k=>r.style.setProperty(map[k],sc[k]));
   const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute('content',sc.bg);
   r.style.setProperty('--hh',String(settings.color==='auto'?SEED_HUE[settings.seed]:COLORS[settings.color][1]));
-  document.body.className='hl-'+(settings.hl||'both')+(settings.fade?' fade':'')+(settings.cc?' ccon':'');
+  document.body.className='hl-'+(settings.hl||'both')+(settings.fade?' fade':'')+(settings.cc?' ccon':'')+(settings.cc&&settings.ccMode==='focus'?' focuson':'');
   if(settings.theme==='light'||settings.theme==='dark'||settings.theme==='sepia')r.setAttribute('data-theme',settings.theme);else r.removeAttribute('data-theme');
   r.style.setProperty('--fs',String(settings.fs||1));
 }
@@ -658,6 +687,7 @@ let view='home';
 function show(name){
   if(view==='reader'&&name!=='reader'){pauseAudio();savePos()}
   view=name;
+  if(typeof applyCC==='function'&&P&&P.segs)$('focus').hidden=!(name==='reader'&&ccFocus());
   ['home','editor','reader','settings'].forEach(n=>{$(n).hidden=n!==name});
   $('bar').hidden=name!=='reader';
   $('settingsBtn').hidden=name==='settings';
@@ -868,8 +898,18 @@ function setWord(k){
   }
 }
 /* ---------- CC: the sentence being heard, large, above the player ---------- */
+const ccFocus=()=>settings.cc&&settings.ccMode==='focus';
+const ccBox=()=>ccFocus()?$('fCur'):$('ccText');
+function sentAt(i,si){const g=P.segs[i];if(!g||!g.sents[si])return '';const r=g.sents[si];return g.text.slice(r.s,r.e)}
+function ccNeighbors(i,si){
+  let prev='',next='';
+  if(si>0)prev=sentAt(i,si-1);else for(let j=i-1;j>=0;j--){const g=P.segs[j];if(g.sents.length){prev=sentAt(j,g.sents.length-1);break}}
+  if(si<P.segs[i].sents.length-1)next=sentAt(i,si+1);else for(let j=i+1;j<P.segs.length;j++){if(P.segs[j].sents.length){next=sentAt(j,0);break}}
+  $('fPrev').textContent=prev;$('fNext').textContent=next;
+}
 function ccRender(seg,si){
-  const box=$('cc');box.textContent='';P.ccMap={};P.ccKey=P.loaded+':'+si;
+  const box=ccBox();box.textContent='';P.ccMap={};P.ccKey=P.loaded+':'+si+':'+(ccFocus()?'f':'b');
+  if(ccFocus())ccNeighbors(P.loaded<0?P.i:P.loaded,si);
   const r=seg.sents[si];if(!r)return;
   let p=r.s;
   (seg.words||[]).forEach((w,k)=>{
@@ -882,15 +922,18 @@ function ccRender(seg,si){
 }
 function ccShow(seg,k){
   const si=seg.wsent[k];
-  if(P.ccKey!==P.loaded+':'+si)ccRender(seg,si);
-  const box=$('cc');box.querySelectorAll('.w.on').forEach(x=>x.classList.remove('on'));
+  if(P.ccKey!==P.loaded+':'+si+':'+(ccFocus()?'f':'b'))ccRender(seg,si);
+  const box=ccBox();box.querySelectorAll('.w.on').forEach(x=>x.classList.remove('on'));
   const sp=P.ccMap&&P.ccMap[k];if(!sp)return;sp.classList.add('on');
   const lh=sp.offsetHeight||30;
   if(sp.offsetTop+lh>box.scrollTop+box.clientHeight||sp.offsetTop<box.scrollTop)box.scrollTop=Math.max(0,sp.offsetTop-lh);
 }
 function applyCC(){
-  const on=!!settings.cc;$('cc').hidden=!on;document.body.classList.toggle('ccon',on);
+  const on=!!settings.cc,f=ccFocus();
+  $('cc').hidden=!on||f;$('focus').hidden=!f||view!=='reader';
+  document.body.classList.toggle('ccon',on);document.body.classList.toggle('focuson',f);
   $('ccBtn').setAttribute('aria-pressed',String(on));
+  ['ccText','fCur'].forEach(id=>{if(!on||(id==='fCur')!==f)$(id).textContent=''});
   if(on){P.ccKey=null;const seg=P.segs[P.loaded];if(seg&&seg.words&&P.cur>=0)ccShow(seg,P.cur);else if(P.segs[P.i]&&P.segs[P.i].words)ccRender(P.segs[P.i],0)}
 }
 function clearWord(){$('page').querySelectorAll('.w.on,.sent.on').forEach(x=>x.classList.remove('on'));P.cur=-1;P.sent=null}
@@ -992,7 +1035,8 @@ const SH={key:null,si:-1,start:0,end:Infinity,done:0,fired:false,waiting:false,p
 const shadowOn=()=>{const g=P.segs[P.loaded];return ((settings.rep??1)!==1||(settings.gap||'off')!=='off')&&!!g&&(g.kind==='paragraph'||g.kind==='li')};
 const byPara=()=>settings.unit==='para';
 function shadowReset(){shadowCancel();SH.key=null;SH.done=0;SH.fired=false}
-function shadowCancel(){if(SH.timer){clearTimeout(SH.timer);clearInterval(SH.tick)}SH.timer=0;SH.waiting=false;SH.cb=null}
+function setTurn(t){['ccTurn','fTurn'].forEach(id=>{const e=$(id);e.textContent=t||'';e.hidden=!t})}
+function shadowCancel(){if(SH.timer){clearTimeout(SH.timer);clearInterval(SH.tick)}SH.timer=0;SH.waiting=false;SH.cb=null;setTurn('')}
 function sentBounds(seg,si){
   const st=sentStarts(seg);let end=Infinity;
   for(let j=si+1;j<st.length;j++)if(st[j]!=null){end=st[j];break}
@@ -1025,9 +1069,10 @@ function shadowFire(goOn){
   if(!ms){next();return}
   SH.waiting=true;SH.cb=next;SH.pausing=!audio.paused;audio.pause();
   const t0=Date.now(),label=again&&rep!==1?'Your turn. Say it, then it plays again':'Your turn. Say it out loud';
-  const show=()=>{const left=Math.max(0,Math.ceil((ms-(Date.now()-t0))/1000));note(label+' · '+left+'s')};show();
+  const turn=rep===0?'Your turn · '+SH.done:rep>1?'Your turn · '+SH.done+' of '+rep:'Your turn';
+  const show=()=>{const left=Math.max(0,Math.ceil((ms-(Date.now()-t0))/1000));setTurn(turn+' · '+left+'s');if(!settings.cc)note(label+' · '+left+'s')};show();
   SH.tick=setInterval(show,250);
-  SH.timer=setTimeout(()=>{clearInterval(SH.tick);SH.timer=0;SH.waiting=false;const cb=SH.cb;SH.cb=null;note('');cb&&cb()},ms);
+  SH.timer=setTimeout(()=>{clearInterval(SH.tick);SH.timer=0;SH.waiting=false;setTurn('');const cb=SH.cb;SH.cb=null;note('');cb&&cb()},ms);
 }
 function shadowSkip(){const cb=SH.cb;shadowCancel();note('');P.playing=true;updateBtn();cb&&cb()}
 /* Start time (ms) of each sentence of a part, from its first word. */
@@ -1087,6 +1132,15 @@ audio.addEventListener('ended',()=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&view==='reader')savePos()});
 
 $('ccBtn').addEventListener('click',()=>{settings.cc=!settings.cc;saveSettings();applyCC()});
+$('ccFocus').addEventListener('click',()=>{settings.ccMode='focus';saveSettings();applyCC()});
+$('focusExit').addEventListener('click',()=>{settings.ccMode='band';saveSettings();applyCC()});
+$('ccClose').addEventListener('click',()=>{settings.cc=false;saveSettings();applyCC()});
+$('fCur').addEventListener('click',e=>{
+  const w=e.target.closest('.w');if(!w)return;
+  const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
+  audio.currentTime=seg.words[+w.dataset.k].ms/1000+0.001;
+  if(!P.playing)play();else tick();
+});
 $('cc').addEventListener('click',e=>{
   const w=e.target.closest('.w');if(!w)return;
   const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
