@@ -148,7 +148,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 body.ccon article{padding-bottom:400px}
 body.ccon #page .w.on{background:none}
 body.ccon #page .sent.on{background:none}
-body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past{color:var(--muted);transition:color .15s ease}
+body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,body.ccon #page .gp.past{color:var(--muted);transition:color .15s ease}
 .ccsent{background:hsl(var(--hh) var(--ss) var(--sl));border-radius:6px;padding:1px 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .bar{z-index:12}
 .focus{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:72px 26px 200px;overflow-y:auto}
@@ -372,7 +372,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past{col
 <script>
 (function(){
 'use strict';
-const VERSION='2.5.0';
+const VERSION='2.5.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -784,18 +784,20 @@ function buildBlocks(d){
 /* A part is drawn as sentences, and each sentence holds its word spans. */
 function renderSeg(i){
   const seg=P.segs[i],node=seg.el,text=seg.text;node.textContent='';
-  seg.spans=[];seg.sentEls=[];seg.wsent=[];
+  seg.spans=[];seg.sentEls=[];seg.wsent=[];seg.gaps=[];
+  /* text between words (commas, spaces) is wrapped too, so it can fade with the words around it */
+  const gap=(sn,t,at)=>{if(!words.length){sn.appendChild(document.createTextNode(t));return}const g=el('span','gp',t);g.dataset.at=String(at);sn.appendChild(g);seg.gaps.push(g)};
   const words=seg.words||[];let k=0,pos=0;
   seg.sents.forEach((r,si)=>{
     if(r.s>pos)node.appendChild(document.createTextNode(text.slice(pos,r.s)));
     const sn=el('span','sent');let p=r.s;
     while(k<words.length&&words[k].s<r.e){
       const w=words[k];
-      if(w.s>p)sn.appendChild(document.createTextNode(text.slice(p,w.s)));
+      if(w.s>p)gap(sn,text.slice(p,w.s),k);
       const sp=el('span','w',text.slice(w.s,w.e));sp.dataset.k=String(k);
       sn.appendChild(sp);seg.spans.push(sp);seg.wsent.push(si);p=w.e;k++;
     }
-    if(p<r.e)sn.appendChild(document.createTextNode(text.slice(p,r.e)));
+    if(p<r.e)gap(sn,text.slice(p,r.e),k);
     node.appendChild(sn);seg.sentEls.push(sn);pos=Math.max(r.e,p);
   });
   if(pos<text.length)node.appendChild(document.createTextNode(text.slice(pos)));
@@ -852,7 +854,7 @@ function openDoc(id){
 function setActive(i){
   P.i=i;
   /* parts already read keep their faded sentences (no flash); parts ahead are cleared */
-  P.segs.forEach((s,k)=>{s.el.classList.toggle('past',k<i);if(k>i){s.sentEls.forEach(e=>e.classList.remove('past'));if(s.wpast){s.spans.forEach(e=>e.classList.remove('past'));s.wpast=false}}});
+  P.segs.forEach((s,k)=>{s.el.classList.toggle('past',k<i);if(k>i){s.sentEls.forEach(e=>e.classList.remove('past'));if(s.wpast){s.spans.forEach(e=>e.classList.remove('past'));(s.gaps||[]).forEach(e=>e.classList.remove('past'));s.wpast=false}}});
   P.leftShown='';
   progress();
 }
@@ -900,7 +902,7 @@ function setWord(k){
   const cs=sp?seg.wsent[k]:-1;
   for(let j=0;j<seg.sentEls.length;j++)seg.sentEls[j].classList.toggle('past',j<cs);
   /* with CC on, the text fades word by word so you can see where the voice is */
-  if(settings.cc||seg.wpast)for(let j=0;j<seg.spans.length;j++)seg.spans[j].classList.toggle('past',!!settings.cc&&j<k);
+  if(settings.cc||seg.wpast){for(let j=0;j<seg.spans.length;j++)seg.spans[j].classList.toggle('past',!!settings.cc&&j<k);seg.gaps.forEach(g=>g.classList.toggle('past',!!settings.cc&&+g.dataset.at<=k))}
   seg.wpast=!!settings.cc;
   if(!sp)return;
   sp.classList.add('on');if(sn)sn.classList.add('on');
