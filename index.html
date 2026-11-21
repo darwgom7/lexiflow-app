@@ -147,7 +147,9 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .ccturn[hidden]{display:none}
 body.ccon article{padding-bottom:400px}
 body.ccon #page .w.on{background:none}
-body.ccon #page .sent.on{background:hsl(var(--hh) var(--ss) var(--sl) / .6)}
+body.ccon #page .sent.on{background:none}
+body.ccon #page .seg.past,body.ccon #page .sent.past{color:var(--muted);transition:color .2s ease}
+.ccsent{background:hsl(var(--hh) var(--ss) var(--sl));border-radius:6px;padding:1px 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .bar{z-index:12}
 .focus{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:72px 26px 200px;overflow-y:auto}
 .focus[hidden]{display:none}
@@ -370,7 +372,7 @@ body.ccon #page .sent.on{background:hsl(var(--hh) var(--ss) var(--sl) / .6)}
 <script>
 (function(){
 'use strict';
-const VERSION='2.4.0';
+const VERSION='2.4.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -910,14 +912,15 @@ function ccNeighbors(i,si){
 function ccRender(seg,si){
   const box=ccBox();box.textContent='';P.ccMap={};P.ccKey=P.loaded+':'+si+':'+(ccFocus()?'f':'b');
   if(ccFocus())ccNeighbors(P.loaded<0?P.i:P.loaded,si);
+  const outer=box;const inner=el('span','ccsent');outer.appendChild(inner);
   const r=seg.sents[si];if(!r)return;
   let p=r.s;
   (seg.words||[]).forEach((w,k)=>{
     if(seg.wsent[k]!==si)return;
-    if(w.s>p)box.appendChild(document.createTextNode(seg.text.slice(p,w.s)));
-    const sp=el('span','w',seg.text.slice(w.s,w.e));sp.dataset.k=String(k);box.appendChild(sp);P.ccMap[k]=sp;p=w.e;
+    if(w.s>p)inner.appendChild(document.createTextNode(seg.text.slice(p,w.s)));
+    const sp=el('span','w',seg.text.slice(w.s,w.e));sp.dataset.k=String(k);inner.appendChild(sp);P.ccMap[k]=sp;p=w.e;
   });
-  if(p<r.e)box.appendChild(document.createTextNode(seg.text.slice(p,r.e)));
+  if(p<r.e)inner.appendChild(document.createTextNode(seg.text.slice(p,r.e)));
   box.scrollTop=0;
 }
 function ccShow(seg,k){
