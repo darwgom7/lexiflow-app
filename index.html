@@ -333,7 +333,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='2.1.0';
+const VERSION='2.1.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -800,7 +800,8 @@ function openDoc(id){
 }
 function setActive(i){
   P.i=i;
-  P.segs.forEach((s,k)=>{s.el.classList.toggle('past',k<i);if(k!==i)s.sentEls.forEach(e=>e.classList.remove('past'))});
+  /* parts already read keep their faded sentences (no flash); parts ahead are cleared */
+  P.segs.forEach((s,k)=>{s.el.classList.toggle('past',k<i);if(k>i)s.sentEls.forEach(e=>e.classList.remove('past'))});
   $('progText').textContent='Part '+(i+1)+' of '+P.segs.length;
   progress();
 }
