@@ -58,7 +58,7 @@ button:disabled{opacity:.55;cursor:default}
 .linkbtn:hover{color:var(--text)}
 .iconbtn{width:40px;height:40px;border-radius:50%;border:0;background:none;color:var(--text);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;position:relative}
 .iconbtn:hover{background:var(--seg)}
-.iconbtn:disabled{opacity:1;color:var(--accent);cursor:default}
+.iconbtn:disabled{opacity:1;color:color-mix(in srgb,var(--accent) 70%,var(--text));cursor:default}
 .iconbtn .badge{position:absolute;bottom:2px;right:0;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted)}
 .acts.tight{gap:2px}
 
@@ -326,7 +326,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='1.8.0';
+const VERSION='1.9.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -502,15 +502,23 @@ const hasKey=()=>!!(azure.key&&azure.region);
 if(settings.hl==='fade'){settings.hl='both';settings.fade=true}
 const COLORS={lilac:['Lilac',265],mint:['Mint',158],peach:['Peach',20],butter:['Butter',46],rose:['Rose',340],sky:['Sky',202]};
 {const old={purple:'lilac',blue:'sky',green:'mint',orange:'peach',yellow:'butter',pink:'rose'};if(old[settings.color])settings.color=old[settings.color];if(settings.color!=='auto'&&!COLORS[settings.color])settings.color='auto';if(!settings.seed)settings.seed=COLORS[settings.color]?settings.color:'lilac'}
-const SCHEMES={"lilac": {"light": {"bg": "#fef7ff", "card": "#ffffff", "low": "#f8f1fa", "cont": "#f2ecf4", "high": "#ece6ee", "text": "#1d1b20", "muted": "#49454e", "line": "#cbc4cf", "accent": "#67558e", "onAccent": "#ffffff", "pc": "#eaddff", "onpc": "#4e3d75", "sc": "#e9def8", "onsc": "#4a4358"}, "dark": {"bg": "#141218", "card": "#0f0d13", "low": "#1d1b20", "cont": "#211f24", "high": "#2b292f", "text": "#e7e0e8", "muted": "#cbc4cf", "line": "#49454e", "accent": "#d1bcfd", "onAccent": "#37265c", "pc": "#4e3d75", "onpc": "#eaddff", "sc": "#4a4358", "onsc": "#e9def8"}}, "mint": {"light": {"bg": "#f5fbf5", "card": "#ffffff", "low": "#eff5f0", "cont": "#eaefea", "high": "#e4eae4", "text": "#171d1a", "muted": "#404944", "line": "#bfc9c2", "accent": "#1d6b50", "onAccent": "#ffffff", "pc": "#a7f2d0", "onpc": "#00513a", "sc": "#cfe9da", "onsc": "#354b41"}, "dark": {"bg": "#0f1512", "card": "#0a0f0d", "low": "#171d1a", "cont": "#1b211e", "high": "#252b28", "text": "#dee4df", "muted": "#bfc9c2", "line": "#404944", "accent": "#8bd5b5", "onAccent": "#003827", "pc": "#00513a", "onpc": "#a7f2d0", "sc": "#354b41", "onsc": "#cfe9da"}}, "peach": {"light": {"bg": "#fff8f6", "card": "#ffffff", "low": "#fff1ec", "cont": "#fceae4", "high": "#f6e5de", "text": "#231a16", "muted": "#52443d", "line": "#d8c2ba", "accent": "#8e4d2f", "onAccent": "#ffffff", "pc": "#ffdbcd", "onpc": "#71361a", "sc": "#ffdbcd", "onsc": "#5d4034"}, "dark": {"bg": "#1a110e", "card": "#140c09", "low": "#231a16", "cont": "#271e1a", "high": "#322824", "text": "#f1dfd8", "muted": "#d8c2ba", "line": "#52443d", "accent": "#ffb595", "onAccent": "#542106", "pc": "#71361a", "onpc": "#ffdbcd", "sc": "#5d4034", "onsc": "#ffdbcd"}}, "butter": {"light": {"bg": "#fff8f2", "card": "#ffffff", "low": "#fcf2e5", "cont": "#f6eddf", "high": "#f1e7d9", "text": "#1f1b13", "muted": "#4d4639", "line": "#d0c5b4", "accent": "#775a0b", "onAccent": "#ffffff", "pc": "#ffdf9c", "onpc": "#5b4300", "sc": "#f4e0bb", "onsc": "#52452a"}, "dark": {"bg": "#17130b", "card": "#110e07", "low": "#1f1b13", "cont": "#231f17", "high": "#2e2921", "text": "#ebe1d4", "muted": "#d0c5b4", "line": "#4d4639", "accent": "#e8c26c", "onAccent": "#3f2e00", "pc": "#5b4300", "onpc": "#ffdf9c", "sc": "#52452a", "onsc": "#f4e0bb"}}, "rose": {"light": {"bg": "#fff8f8", "card": "#ffffff", "low": "#fff0f3", "cont": "#faeaed", "high": "#f4e4e7", "text": "#22191c", "muted": "#514347", "line": "#d5c2c6", "accent": "#8b4a63", "onAccent": "#ffffff", "pc": "#ffd9e4", "onpc": "#6f334b", "sc": "#ffd9e4", "onsc": "#5a3f48"}, "dark": {"bg": "#191114", "card": "#130c0e", "low": "#22191c", "cont": "#261d20", "high": "#31282a", "text": "#efdfe2", "muted": "#d5c2c6", "line": "#514347", "accent": "#ffb0cb", "onAccent": "#541d34", "pc": "#6f334b", "onpc": "#ffd9e4", "sc": "#5a3f48", "onsc": "#ffd9e4"}}, "sky": {"light": {"bg": "#f8f9ff", "card": "#ffffff", "low": "#f2f3f9", "cont": "#eceef4", "high": "#e6e8ee", "text": "#191c20", "muted": "#42474e", "line": "#c2c7cf", "accent": "#33618d", "onAccent": "#ffffff", "pc": "#d0e4ff", "onpc": "#154974", "sc": "#d6e4f7", "onsc": "#3b4857"}, "dark": {"bg": "#101418", "card": "#0b0e12", "low": "#191c20", "cont": "#1d2024", "high": "#272a2f", "text": "#e0e2e8", "muted": "#c2c7cf", "line": "#42474e", "accent": "#9ecafc", "onAccent": "#003256", "pc": "#154974", "onpc": "#d0e4ff", "sc": "#3b4857", "onsc": "#d6e4f7"}}};
-const SEED_HUE={lilac:259,mint:158,peach:19,butter:43,rose:334,sky:208};
+/* Vivid brand accents over a neutral base. */
+const ACCENTS={lilac:['Violet','#9B6BFF'],mint:['Mint','#22CC96'],peach:['Peach','#FF8A5C'],butter:['Sun','#FFC233'],rose:['Rose','#FF6FA8'],sky:['Sky','#38B6FF']};
+const BASES={light:{bg:'#F6F6F4',card:'#FFFFFF',text:'#1C1C1C',muted:'#666666',line:'rgba(28,28,40,.11)'},dark:{bg:'#111111',card:'#1C1C1C',text:'#F2F2F2',muted:'#9A9A9A',line:'rgba(235,235,255,.12)'}};
+function lum(hex){const c=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]}
+function onColor(hex){const L=lum(hex);return (1.05/(L+.05))>=((L+.05)/(lum('#161616')+.05))?'#FFFFFF':'#161616'}
+const SEED_HUE={lilac:259,mint:160,peach:16,butter:42,rose:336,sky:202};
 const SEPIA={bg:'#F4ECD8',card:'#FBF6EA',low:'#F8F0DF',cont:'#F1E7D2',high:'#EBE0C9',text:'#3B3226',muted:'#6E604C',line:'#DCCDB1'};
 const darkMq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
 function isDark(){return settings.theme==='dark'||(settings.theme==='system'&&darkMq&&darkMq.matches)}
 function applyTheme(){
   const r=document.documentElement;
-  if(!SCHEMES[settings.seed])settings.seed='lilac';
-  const sc=Object.assign({},SCHEMES[settings.seed][isDark()?'dark':'light'],settings.theme==='sepia'?SEPIA:{});
+  if(!ACCENTS[settings.seed])settings.seed='lilac';
+  const acc=ACCENTS[settings.seed][1];
+  const sc=Object.assign({},settings.theme==='sepia'?SEPIA:BASES[isDark()?'dark':'light']);
+  sc.accent=acc;sc.onAccent=onColor(acc);
+  sc.pc='color-mix(in srgb,'+acc+' 22%,'+sc.bg+')';
+  sc.sc='color-mix(in srgb,'+acc+(isDark()?' 26%,':' 20%,')+sc.card+')';sc.onsc=sc.text;
   const map={bg:'--bg',card:'--card',text:'--text',muted:'--muted',line:'--line',accent:'--accent',onAccent:'--on-accent',pc:'--pc',sc:'--sc',onsc:'--onsc'};
   Object.keys(map).forEach(k=>r.style.setProperty(map[k],sc[k]));
   const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute('content',sc.bg);
@@ -1048,9 +1056,9 @@ $('testVoice').addEventListener('click',async()=>{
 });
 function renderSwatches(){
   const sb=$('seedSwatches');sb.textContent='';
-  Object.keys(SCHEMES).forEach(name=>{
-    const b=el('button','sw');b.type='button';b.style.background=SCHEMES[name].light.accent;
-    b.setAttribute('aria-label',COLORS[name][0]);b.title=COLORS[name][0];
+  Object.keys(ACCENTS).forEach(name=>{
+    const b=el('button','sw');b.type='button';b.style.background=ACCENTS[name][1];
+    b.setAttribute('aria-label',ACCENTS[name][0]);b.title=ACCENTS[name][0];
     b.setAttribute('aria-pressed',String(settings.seed===name));
     b.addEventListener('click',()=>{settings.seed=name;saveSettings();applyTheme();renderSwatches()});
     sb.appendChild(b);
