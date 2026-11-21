@@ -272,7 +272,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='1.5.1';
+const VERSION='1.5.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -351,7 +351,13 @@ function htmlToText(html){
     if(/^h[1-6]$/.test(t)){end();cur='#'.repeat(Math.min(3,+t[1]))+' ';kids(n,ctx);end();return}
     if(t==='li'){end();const ol=n.parentElement&&n.parentElement.tagName==='OL';
       cur=(ol?([...n.parentElement.children].indexOf(n)+1)+'. ':'- ');
-      [...n.childNodes].forEach(c=>{if(c.nodeType===1&&/^(UL|OL)$/.test(c.tagName)){end();walk(c,ctx)}else walk(c,ctx)});end();return}
+      /* paragraphs inside an item stay on the item's line; nested lists follow it */
+      const inline=c=>{if(c.nodeType===3){cur+=c.nodeValue.replace(/\s+/g,' ');return}
+        if(c.nodeType!==1)return;
+        if(/^(UL|OL)$/.test(c.tagName)){end();walk(c,ctx);return}
+        if(/^(P|DIV|SPAN|STRONG|B|EM|I|A|CODE|LABEL|SECTION)$/.test(c.tagName)){if(/^(P|DIV|SECTION)$/.test(c.tagName)&&cur.trim().length>3)cur+=' ';[...c.childNodes].forEach(inline);return}
+        walk(c,ctx)};
+      [...n.childNodes].forEach(inline);end();return}
     if(t==='tr'){end();cur='| '+[...n.children].map(c=>c.textContent.trim()).join(' | ')+' |';end();return}
     if(t==='br'){cur+='\n';return}
     if(t==='hr'){end();return}
