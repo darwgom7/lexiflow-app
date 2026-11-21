@@ -14,29 +14,29 @@
 :root{
   --bg:#F6F6F4; --card:#FFFFFF; --text:#1C1C1C; --muted:#6B6B6B;
   --line:rgba(28,28,40,.10); --accent:#4352C4; --bad:#B4483F; --ok:#2E7D4F;
-  --hl:80,100,255; --wa:.40; --sa:.18;
+  --hh:265; --ss:80%; --sl:91%; --ws:78%; --wl:82%;
   --ui:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
   --read:"Literata","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
+  :root:not([data-theme="light"]):not([data-theme="sepia"]){
     --bg:#111111; --card:#1C1C1C; --text:#F2F2F2; --muted:#9A9A9A;
     --line:rgba(235,235,255,.11); --accent:#98A4FF; --bad:#E58B82; --ok:#7CCB98;
-    --wa:.55; --sa:.24;
+    --ss:38%; --sl:26%; --ws:48%; --wl:38%;
     color-scheme:dark;
   }
 }
 :root[data-theme="sepia"]{
   --bg:#F4ECD8; --card:#FBF6EA; --text:#3B3226; --muted:#7A6C58;
   --line:rgba(80,55,20,.14); --accent:#8A5A2B; --bad:#A4442F; --ok:#4F7A3A;
-  --wa:.30; --sa:.13;
+  --ss:50%; --sl:86%; --ws:55%; --wl:76%;
   color-scheme:light;
 }
 :root[data-theme="dark"]{
   --bg:#111111; --card:#1C1C1C; --text:#F2F2F2; --muted:#9A9A9A;
   --line:rgba(235,235,255,.11); --accent:#98A4FF; --bad:#E58B82; --ok:#7CCB98;
-  --wa:.55; --sa:.24;
+  --ss:38%; --sl:26%; --ws:48%; --wl:38%;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -108,15 +108,15 @@ article li{margin:0 0 .35em;padding-left:.15em}
 article li::marker{color:var(--muted)}
 .seg{border-radius:5px;cursor:pointer;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .sent{border-radius:5px;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background-color .15s ease}
-.sent.on{background:rgba(var(--hl),var(--sa))}
+.sent.on{background:hsl(var(--hh) var(--ss) var(--sl))}
 body.hl-word .sent.on,body.hl-off .sent.on{background:none}
 body.hl-sent .w.on,body.hl-off .w.on{background:none}
 body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s ease}
 .icon{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px}
 .w{border-radius:4px;padding:1px 2px;margin:0 -2px}
-.w.on{background:rgba(var(--hl),var(--wa))}
+.w.on{background:hsl(var(--hh) var(--ws) var(--wl))}
 .swatches{display:flex;gap:12px;flex-wrap:wrap}
-.sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);padding:0;background:rgb(var(--c))}
+.sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);padding:0;background:hsl(var(--c) var(--ws) var(--wl))}
 .sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--text)}
 .preview{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .sample{font-family:var(--read);font-size:18px;line-height:1.7;margin:0}
@@ -317,7 +317,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 <script>
 (function(){
 'use strict';
-const VERSION='1.6.0';
+const VERSION='1.6.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -483,7 +483,7 @@ const SAMPLE=[
 'Over time, the pages add up. Words that once looked strange begin to feel familiar. As one teacher liked to say, “You do not need to understand everything today. You only need to come back tomorrow.”'
 ].join('\n\n');
 
-const settings=Object.assign({rate:1,autoflow:true,theme:'system',color:'blue',hl:'both',voice:'en-US-AvaMultilingualNeural'},load('lexiflow.settings',{})||{});
+const settings=Object.assign({rate:1,autoflow:true,theme:'system',color:'lilac',hl:'both',voice:'en-US-AvaMultilingualNeural'},load('lexiflow.settings',{})||{});
 const azure=Object.assign({key:'',region:'eastus'},load('lexiflow.azure',{})||{});
 let docs=load('lexiflow.docs',null);
 if(!Array.isArray(docs))docs=[{id:'sample',title:'Small Steps, Clear Mind',raw:SAMPLE,sample:true,bi:0,ms:0,nb:0,updatedAt:0}];
@@ -491,10 +491,11 @@ const saveDocs=()=>save('lexiflow.docs',docs);
 const saveSettings=()=>save('lexiflow.settings',settings);
 const hasKey=()=>!!(azure.key&&azure.region);
 if(settings.hl==='fade'){settings.hl='both';settings.fade=true}
-const COLORS={blue:['Blue','80,100,255'],yellow:['Yellow','255,196,0'],green:['Green','40,175,95'],pink:['Pink','235,80,160'],orange:['Orange','255,135,30'],purple:['Purple','150,90,240']};
+const COLORS={lilac:['Lilac',265],mint:['Mint',158],peach:['Peach',20],butter:['Butter',46],rose:['Rose',340],sky:['Sky',202]};
+{const old={purple:'lilac',blue:'sky',green:'mint',orange:'peach',yellow:'butter',pink:'rose'};if(old[settings.color])settings.color=old[settings.color];if(!COLORS[settings.color])settings.color='lilac'}
 function applyTheme(){
   const r=document.documentElement;
-  r.style.setProperty('--hl',(COLORS[settings.color]||COLORS.blue)[1]);
+  r.style.setProperty('--hh',String(COLORS[settings.color][1]));
   document.body.className='hl-'+(settings.hl||'both')+(settings.fade?' fade':'');
   if(settings.theme==='light'||settings.theme==='dark'||settings.theme==='sepia')r.setAttribute('data-theme',settings.theme);else r.removeAttribute('data-theme');
   r.style.setProperty('--fs',String(settings.fs||1));
@@ -763,7 +764,7 @@ function openDoc(id){
 }
 function setActive(i){
   P.i=i;
-  P.segs.forEach((s,k)=>s.el.classList.toggle('past',k<i));
+  P.segs.forEach((s,k)=>{s.el.classList.toggle('past',k<i);if(k!==i)s.sentEls.forEach(e=>e.classList.remove('past'))});
   $('progText').textContent='Part '+(i+1)+' of '+P.segs.length;
   progress();
 }
@@ -1028,7 +1029,7 @@ $('testVoice').addEventListener('click',async()=>{
 function renderSwatches(){
   const box=$('swatches');box.textContent='';
   Object.keys(COLORS).forEach(name=>{
-    const b=el('button','sw');b.type='button';b.style.setProperty('--c',COLORS[name][1]);
+    const b=el('button','sw');b.type='button';b.style.setProperty('--c',String(COLORS[name][1]));
     b.setAttribute('aria-label',COLORS[name][0]);b.title=COLORS[name][0];
     b.setAttribute('aria-pressed',String(settings.color===name));
     b.addEventListener('click',()=>{settings.color=name;saveSettings();applyTheme();renderSwatches()});
