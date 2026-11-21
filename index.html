@@ -372,7 +372,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past{color:var(--muted);transiti
 <script>
 (function(){
 'use strict';
-const VERSION='2.4.1';
+const VERSION='2.4.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -804,6 +804,14 @@ function renderSeg(i){
 function applyRec(i,rec){
   const seg=P.segs[i];if(!seg||seg.rec===rec)return;
   seg.rec=rec;seg.words=rec.words;renderSeg(i);
+  if(i===P.i&&settings.cc&&P.cur<0)ccIdle();
+}
+/* What the CC shows when nothing is playing yet: the sentence where you left off. */
+function ccIdle(){
+  const i=P.i,seg=P.segs[i];if(!seg||!seg.sents.length)return;
+  let si=0;
+  if(seg.words&&P.doc&&P.doc.bi===i&&P.doc.ms){const k=wordAt(seg.words,P.doc.ms);if(k>=0)si=seg.wsent[k]}
+  ccRender(seg,si,i);
 }
 function openDoc(id){
   const d=findDoc(id);if(!d)return;
@@ -909,9 +917,10 @@ function ccNeighbors(i,si){
   if(si<P.segs[i].sents.length-1)next=sentAt(i,si+1);else for(let j=i+1;j<P.segs.length;j++){if(P.segs[j].sents.length){next=sentAt(j,0);break}}
   $('fPrev').textContent=prev;$('fNext').textContent=next;
 }
-function ccRender(seg,si){
-  const box=ccBox();box.textContent='';P.ccMap={};P.ccKey=P.loaded+':'+si+':'+(ccFocus()?'f':'b');
-  if(ccFocus())ccNeighbors(P.loaded<0?P.i:P.loaded,si);
+function ccRender(seg,si,idx){
+  const at=idx==null?P.loaded:idx;
+  const box=ccBox();box.textContent='';P.ccMap={};P.ccKey=at+':'+si+':'+(ccFocus()?'f':'b')+(seg.words?'':':nw');
+  if(ccFocus())ccNeighbors(at<0?P.i:at,si);
   const outer=box;const inner=el('span','ccsent');outer.appendChild(inner);
   const r=seg.sents[si];if(!r)return;
   let p=r.s;
@@ -937,7 +946,7 @@ function applyCC(){
   document.body.classList.toggle('ccon',on);document.body.classList.toggle('focuson',f);
   $('ccBtn').setAttribute('aria-pressed',String(on));
   ['ccText','fCur'].forEach(id=>{if(!on||(id==='fCur')!==f)$(id).textContent=''});
-  if(on){P.ccKey=null;const seg=P.segs[P.loaded];if(seg&&seg.words&&P.cur>=0)ccShow(seg,P.cur);else if(P.segs[P.i]&&P.segs[P.i].words)ccRender(P.segs[P.i],0)}
+  if(on){P.ccKey=null;const seg=P.segs[P.loaded];if(seg&&seg.words&&P.cur>=0)ccShow(seg,P.cur);else ccIdle()}
 }
 function clearWord(){$('page').querySelectorAll('.w.on,.sent.on').forEach(x=>x.classList.remove('on'));P.cur=-1;P.sent=null}
 function tick(){
