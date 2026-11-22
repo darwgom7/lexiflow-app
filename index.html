@@ -483,7 +483,7 @@ body.imm.reading.foot-on .foot{display:flex}
 <script>
 (function(){
 'use strict';
-const VERSION='2.8.0';
+const VERSION='2.8.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1164,7 +1164,7 @@ function applyCC(){
 function clearWord(){$('page').querySelectorAll('.w.on,.sent.on').forEach(x=>x.classList.remove('on'));P.cur=-1;P.sent=null}
 function tick(){
   const seg=P.segs[P.loaded];
-  if(seg&&seg.words&&!P.busy){
+  if(seg&&seg.words&&!P.busy&&!P.finished){
     if(shadowCheck())return;
     setWord(wordAt(seg.words,audio.currentTime*1000));
   }
@@ -1188,7 +1188,7 @@ function waitMeta(){
   });
 }
 async function playSeg(i,ms,autoplay){
-  shadowReset();
+  shadowReset();P.finished=false;
   if(i<0||i>=P.segs.length)return;
   const tok=++P.tok,seg=P.segs[i],want=autoplay!==false;
   P.busy++;
@@ -1237,8 +1237,17 @@ function offerSettings(){
   const n=$('note');const b=el('button','linkbtn',' Open Settings');b.type='button';b.style.marginLeft='6px';
   b.addEventListener('click',openSettings);n.appendChild(b);
 }
+/* Play after the end starts the reading over from the top. */
+function restart(){
+  P.finished=false;
+  if(P.doc){P.doc.done=false;P.doc.bi=0;P.doc.ms=0;P.doc.updatedAt=Date.now();saveDocs()}
+  P.segs.forEach(s=>{s.el.classList.remove('past');s.sentEls.forEach(e=>e.classList.remove('past'));(s.spans||[]).forEach(e=>e.classList.remove('past'));(s.gaps||[]).forEach(e=>e.classList.remove('past'));s.wpast=false});
+  window.scrollTo({top:0,behavior:reduced?'auto':'smooth'});
+  playSeg(0,0,true);
+}
 function play(){
   if(SH.waiting){shadowSkip();return}
+  if(P.finished||(P.doc&&P.doc.done&&!(P.loaded===P.i&&audio.src&&!audio.ended&&audio.currentTime>0))){restart();return}
   if(P.loaded===P.i&&audio.src){P.playing=true;updateBtn();note('');audio.playbackRate=settings.rate;audio.play().catch(()=>{P.playing=false;updateBtn()})}
   else playSeg(P.i,(P.doc&&P.doc.bi===P.i)?(P.doc.ms||0):0,true);
 }
@@ -1250,7 +1259,11 @@ function stopAudio(){
   P.loaded=-1;P.cur=-1;
 }
 function finish(){
-  P.playing=false;updateBtn();clearWord();
+  P.playing=false;updateBtn();clearWord();P.finished=true;
+  /* everything has been heard: fade it all, including the last word, and clear the caption highlight */
+  P.segs.forEach(s=>{s.el.classList.add('past');s.sentEls.forEach(e=>e.classList.add('past'))});
+  const ls=P.segs[P.loaded];if(settings.cc&&ls&&ls.spans){ls.spans.forEach(e=>e.classList.add('past'));(ls.gaps||[]).forEach(e=>e.classList.add('past'));ls.wpast=true}
+  document.querySelectorAll('#ccText .w.on,#fCur .w.on').forEach(x=>x.classList.remove('on'));
   if(P.doc){P.doc.done=true;P.doc.bi=P.segs.length-1;P.doc.ms=0;P.doc.updatedAt=Date.now();saveDocs()}
   $('progFill').style.width='100%';
   note('Finished. Tap any word to hear it again.');
