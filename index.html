@@ -258,6 +258,20 @@ body.imm.reading.foot-on .foot{display:flex}
 .jump{position:fixed;left:50%;transform:translateX(-50%);z-index:14;height:40px;padding:0 16px 0 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(0,0,0,.16);white-space:nowrap}
 .jump[hidden]{display:none}
 .jump svg{color:var(--accent)}
+div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.readers{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.rd{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 8px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);cursor:pointer;min-width:0}
+.rd:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.rd[aria-checked="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.rd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rd .face{width:44px;height:44px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center}
+.rd .face.other{background:var(--seg,var(--line));color:var(--muted)}
+.rd .nm{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-weight:700;font-size:15px;color:var(--text)}
+.rd .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rd .fw{position:relative;flex:none;width:44px;height:44px}
+.rd .fl{position:absolute;right:-4px;bottom:-1px;width:18px;height:12px;border-radius:2.5px;box-shadow:0 0 0 1.5px var(--card)}
+.rd .smp{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--text);display:inline-flex;align-items:center;justify-content:center;padding:0 0 0 2px;flex:none}
+.rd .smp:disabled{opacity:.5}
 </style>
 </head>
 <body>
@@ -320,7 +334,8 @@ body.imm.reading.foot-on .foot{display:flex}
           <input id="azRegion" type="text" autocomplete="off" spellcheck="false" placeholder="eastus">
         </label>
       </div>
-      <label class="field" for="voiceSel">Voice
+      <div class="field"><span>Reader</span><div class="readers" id="readers" role="radiogroup" aria-label="Reader"></div></div>
+      <label class="field" for="voiceSel" hidden>Voice
         <select id="voiceSel">
           <option value="en-US-AvaMultilingualNeural">Ava (US, female)</option>
           <option value="en-US-AndrewMultilingualNeural">Andrew (US, male)</option>
@@ -330,6 +345,10 @@ body.imm.reading.foot-on .foot{display:flex}
           <option value="en-US-GuyNeural">Guy (US, male)</option>
           <option value="en-GB-SoniaNeural">Sonia (UK, female)</option>
           <option value="en-GB-RyanNeural">Ryan (UK, male)</option>
+          <option value="en-AU-NatashaNeural">Natasha (Australia, female)</option>
+          <option value="en-AU-WilliamNeural">William (Australia, male)</option>
+          <option value="en-IN-NeerjaNeural">Neerja (India, female)</option>
+          <option value="en-IN-PrabhatNeural">Prabhat (India, male)</option>
           <option value="custom">Other (type the name)</option>
         </select>
       </label>
@@ -487,7 +506,7 @@ body.imm.reading.foot-on .foot{display:flex}
 <script>
 (function(){
 'use strict';
-const VERSION='2.9.0';
+const VERSION='2.10.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1487,7 +1506,7 @@ function openSettings(){
   $('homeStyle').value=settings.homeStyle||'shelves';
   $('autoflow').checked=!!settings.autoflow;$('themeSel').value=settings.theme;renderSwatches();$('hlSel').value=settings.hl||'both';$('fadeChk').checked=!!settings.fade;
   $('voiceMsg').textContent='';$('voiceMsg').className='msg';$('libMsg').textContent='';
-  refreshUsage();
+  refreshUsage();renderReaders();
   show('settings');
 }
 function refreshUsage(){
@@ -1508,6 +1527,77 @@ $('saveVoice').addEventListener('click',()=>{
   vmsg(f.key?'Saved.':'Saved. Add a key to hear the voice.',f.key?'ok':'');
 });
 const tester=new Audio();
+/* ---------- readers: each voice gets a face, a flag and a name ---------- */
+const READERS={
+  'en-US-AvaMultilingualNeural':{n:'Ava',a:'us',g:'f',skin:'#F2C7A5',hair:'#5B3A29',bg:'#E9E3FF',top:'#8B5CF6'},
+  'en-US-AndrewMultilingualNeural':{n:'Andrew',a:'us',g:'m',skin:'#E3AE88',hair:'#2B2420',bg:'#DDF3EA',top:'#2E6B57'},
+  'en-US-EmmaMultilingualNeural':{n:'Emma',a:'us',g:'f',skin:'#F6D3BA',hair:'#C68A3E',bg:'#FFE6D9',top:'#F2672E'},
+  'en-US-BrianMultilingualNeural':{n:'Brian',a:'us',g:'m',skin:'#B9825A',hair:'#2E1E14',bg:'#DDEBF8',top:'#1E6FB8'},
+  'en-US-JennyNeural':{n:'Jenny',a:'us',g:'f',skin:'#8A5A3C',hair:'#1D1714',bg:'#FCE1EC',top:'#D9467F'},
+  'en-US-GuyNeural':{n:'Guy',a:'us',g:'m',skin:'#F0C4A0',hair:'#9A6430',bg:'#FFF1CF',top:'#C9921A'},
+  'en-GB-SoniaNeural':{n:'Sonia',a:'gb',g:'f',skin:'#F3CDB3',hair:'#7A2E1F',bg:'#E1E7FA',top:'#3949AB'},
+  'en-GB-RyanNeural':{n:'Ryan',a:'gb',g:'m',skin:'#E8B995',hair:'#6B4A2B',bg:'#E6EEE3',top:'#4E7A3A'},
+  'en-AU-NatashaNeural':{n:'Natasha',a:'au',g:'f',skin:'#EFC09C',hair:'#D9A441',bg:'#DDF2F7',top:'#1F8AA6'},
+  'en-AU-WilliamNeural':{n:'William',a:'au',g:'m',skin:'#D9A07A',hair:'#4A3424',bg:'#F7E4DA',top:'#A4532F'},
+  'en-IN-NeerjaNeural':{n:'Neerja',a:'in',g:'f',skin:'#A8714B',hair:'#151110',bg:'#FFEBD6',top:'#E07B1F'},
+  'en-IN-PrabhatNeural':{n:'Prabhat',a:'in',g:'m',skin:'#9C6644',hair:'#1A1411',bg:'#E2F1E4',top:'#2F7D45'}
+};
+const ACCENT_NAME={us:'American',gb:'British',au:'Australian',in:'Indian'};
+let faceN=0;
+function readerFace(r,s){
+  const id='fc'+(++faceN),f=r.g==='f';
+  const back=f?'<path d="M11 23c0-9 4.6-14 11-14s11 5 11 14v13H11z" fill="'+r.hair+'"/>':'';
+  const top=f?'<path d="M13.4 21c-.2-6.6 3.6-10.6 8.6-10.6s8.8 4 8.6 10.6c-3.4-1-6.6-3.4-8.4-6.6-1.8 3.4-5.2 5.8-8.8 6.6z" fill="'+r.hair+'"/>'
+             :'<path d="M13.2 20c-.6-6.4 3.4-10.6 8.8-10.6s9.4 4.2 8.8 10.6c-1.4-2.8-4.2-4.6-8.8-4.8-4.6.2-7.4 2-8.8 4.8z" fill="'+r.hair+'"/>';
+  return '<svg class="face" viewBox="0 0 44 44" width="'+s+'" height="'+s+'" aria-hidden="true"><defs><clipPath id="'+id+'"><circle cx="22" cy="22" r="22"/></clipPath></defs><g clip-path="url(#'+id+')"><rect width="44" height="44" fill="'+r.bg+'"/>'+back
+    +'<path d="M7 46c1.2-8 7.4-11.6 15-11.6S35.8 38 37 46z" fill="'+r.top+'"/><rect x="18.6" y="28" width="6.8" height="7.4" rx="2.6" fill="'+r.skin+'"/>'
+    +'<ellipse cx="22" cy="21.4" rx="8.6" ry="9.6" fill="'+r.skin+'"/>'+top
+    +'<circle cx="18.8" cy="22.4" r="1.05" fill="#2A1D16"/><circle cx="25.2" cy="22.4" r="1.05" fill="#2A1D16"/><path d="M19.4 26q2.6 1.9 5.2 0" stroke="#2A1D16" stroke-width="1.05" fill="none" stroke-linecap="round"/></g></svg>';
+}
+const FLAGS={
+  us:'<rect width="18" height="12" fill="#fff"/><g fill="#B22234"><rect width="18" height="1.72"/><rect y="3.43" width="18" height="1.72"/><rect y="6.86" width="18" height="1.72"/><rect y="10.28" width="18" height="1.72"/></g><rect width="8" height="6.86" fill="#3C3B6E"/>',
+  gb:'<rect width="18" height="12" fill="#012169"/><path d="M0 0l18 12M18 0L0 12" stroke="#fff" stroke-width="2.4"/><path d="M0 0l18 12M18 0L0 12" stroke="#C8102E" stroke-width=".9"/><path d="M9 0v12M0 6h18" stroke="#fff" stroke-width="3.6"/><path d="M9 0v12M0 6h18" stroke="#C8102E" stroke-width="2"/>',
+  au:'<rect width="18" height="12" fill="#012169"/><g transform="scale(.5)"><path d="M0 0l18 12M18 0L0 12" stroke="#fff" stroke-width="2.4"/><path d="M9 0v12M0 6h18" stroke="#fff" stroke-width="3.6"/><path d="M9 0v12M0 6h18" stroke="#C8102E" stroke-width="2"/></g><g fill="#fff"><circle cx="4.5" cy="9.2" r="1.2"/><circle cx="13.5" cy="2.6" r=".7"/><circle cx="15.6" cy="5.4" r=".7"/><circle cx="11.6" cy="6" r=".7"/><circle cx="13.6" cy="9.6" r=".8"/></g>',
+  in:'<rect width="18" height="4" fill="#FF9933"/><rect y="4" width="18" height="4" fill="#fff"/><rect y="8" width="18" height="4" fill="#138808"/><circle cx="9" cy="6" r="1.5" fill="none" stroke="#000080" stroke-width=".5"/>'
+};
+const flagSvg=a=>FLAGS[a]?'<svg class="fl" viewBox="0 0 18 12" width="18" height="12" aria-hidden="true">'+FLAGS[a]+'</svg>':'';
+const I_SAMPLE='<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+function renderReaders(){
+  const box=$('readers');box.textContent='';
+  const cur=$('voiceSel').value;
+  VOICES.forEach(v=>{
+    const r=READERS[v],custom=v==='custom';
+    const c=el('div','rd');c.setAttribute('role','radio');c.tabIndex=0;c.setAttribute('aria-checked',String(cur===v));
+    c.setAttribute('aria-label',custom?'Other voice, type its name':r.n+', '+ACCENT_NAME[r.a]+' English, '+(r.g==='f'?'female':'male'));
+    if(custom){const ic=el('span','face other');ic.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';c.appendChild(ic)}
+    else{const fw=el('span','fw');fw.innerHTML=readerFace(r,44)+flagSvg(r.a);c.appendChild(fw)} /* the flag sits on the face like a badge */
+    const nm=el('span','nm');nm.appendChild(el('span','who',custom?'Other':r.n));c.appendChild(nm);
+    if(!custom){
+      const sb=el('button','smp');sb.type='button';sb.innerHTML=I_SAMPLE;sb.setAttribute('aria-label','Hear '+r.n);sb.title='Hear '+r.n;
+      sb.addEventListener('click',e=>{e.stopPropagation();sampleReader(v,sb)});c.appendChild(sb);
+    }
+    const pick=()=>{
+      $('voiceSel').value=v;$('voiceCustomWrap').hidden=!custom;renderReaders();
+      if(custom){$('voiceCustom').focus();return}
+      settings.voice=v;saveSettings();vmsg(r.n+' reads from now on.','ok');
+    };
+    c.addEventListener('click',pick);
+    c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}});
+    box.appendChild(c);
+  });
+}
+async function sampleReader(v,btn){
+  const f=readVoiceForm(),r=READERS[v];
+  if(!f.key){vmsg('Paste your key first, then you can hear each reader.','bad');return}
+  const old={key:azure.key,region:azure.region};azure.key=f.key;azure.region=f.region;
+  btn.disabled=true;vmsg('Asking Azure…');
+  try{
+    const rec=await getAudio('Hi, I am '+r.n+'. This is how I will read your texts.',v);
+    tester.src=URL.createObjectURL(rec.blob);tester.play().catch(()=>{});vmsg('');
+  }catch(e){vmsg(e.message,'bad')}
+  finally{azure.key=old.key;azure.region=old.region;btn.disabled=false;refreshUsage()}
+}
+
 $('testVoice').addEventListener('click',async()=>{
   const f=readVoiceForm();
   if(!f.key){vmsg('Paste your key first.','bad');return}
