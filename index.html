@@ -339,7 +339,7 @@ body.imm.reading.foot-on .foot{display:flex}
 
     <div class="stack">
       <h2 class="label">Floating ball</h2>
-      <p class="muted small">Hide the bars with the corners button at the top of a reading, or press H. The ball stays as your remote: tap it for controls and drag it to either side.</p>
+      <p class="muted small">Hide the bars with the corners button at the top of a reading, or press H. The ball stays as your remote: tap to play or pause, hold it for more buttons, and drag it to either side.</p>
       <div class="two">
         <label class="field" for="bTap">Tap<select id="bTap"></select></label>
         <label class="field" for="bDbl">Double tap<select id="bDbl"></select></label>
@@ -441,7 +441,7 @@ body.imm.reading.foot-on .foot{display:flex}
 <script>
 (function(){
 'use strict';
-const VERSION='2.6.1';
+const VERSION='2.6.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -612,8 +612,10 @@ const azure=Object.assign({key:'',region:'eastus'},load('lexiflow.azure',{})||{}
 let docs=load('lexiflow.docs',null);
 if(!Array.isArray(docs))docs=[{id:'sample',title:'Small Steps, Clear Mind',raw:SAMPLE,sample:true,bi:0,ms:0,nb:0,updatedAt:0}];
 const saveDocs=()=>save('lexiflow.docs',docs);
-const BALL_DEF={side:'r',y:0.6,tap:'menu',dbl:'play',long:'repeat',btns:['play','repeat','next','cc','options','bars'],size:1,withBars:false,tuck:false,foot:true};
+const BALL_DEF={side:'r',y:0.6,tap:'play',dbl:'repeat',long:'menu',btns:['play','repeat','next','cc','options','bars'],size:1,withBars:false,tuck:false,foot:true};
 settings.ball=Object.assign({},BALL_DEF,settings.ball||{});
+/* 2.6.2: tap plays, hold opens the menu. Move people who still had the old untouched gestures. */
+if(!settings.ballV){const B=settings.ball;if(B.tap==='menu'&&B.dbl==='play'&&B.long==='repeat'){B.tap='play';B.dbl='repeat';B.long='menu'}settings.ballV=2}
 const saveSettings=()=>save('lexiflow.settings',settings);
 const hasKey=()=>!!(azure.key&&azure.region);
 if(settings.hl==='fade'){settings.hl='both';settings.fade=true}
@@ -1431,7 +1433,7 @@ function ballSize(){return 56*(settings.ball.size||1)}
 function tapAction(){const B=settings.ball,g=[B.tap,B.dbl,B.long];return g.includes('menu')||g.includes('bars')?B.tap:'menu'}
 function setImm(on){
   settings.imm=!!on;saveSettings();closeFan();applyTheme();ballSync();
-  if(on&&!settings.ballTip&&view==='reader'){settings.ballTip=true;saveSettings();ballTip('Tap the ball for controls. Drag it to move it.')}
+  if(on&&!settings.ballTip&&view==='reader'){settings.ballTip=true;saveSettings();ballTip(tapAction()==='play'?'Tap to play or pause. Hold for more.':tapAction()==='menu'?'Tap the ball for controls. Drag it to move it.':'Hold the ball for more. Drag it to move it.')}
   if(view==='reader'&&P.segs.length)progress();
 }
 function ballSync(){
@@ -1464,7 +1466,7 @@ function ballPaint(){
   const C=2*Math.PI*23;let p=0,inner;
   if(fanOpen())inner=BI.x;
   else if(SH.waiting&&SH.ms){const left=Math.max(0,SH.ms-(Date.now()-SH.t0));p=left/SH.ms;inner=String(Math.max(1,Math.ceil(left/1000)))}
-  else{p=(P.loaded===P.i&&audio.duration)?Math.min(1,audio.currentTime/audio.duration):0;inner=P.playing?'<i class="bdot"></i>':'<i class="bdot off"></i>'}
+  else{p=(P.loaded===P.i&&audio.duration)?Math.min(1,audio.currentTime/audio.duration):0;inner=tapAction()==='play'?(P.playing?I_PAUSE:I_PLAY):(P.playing?'<i class="bdot"></i>':'<i class="bdot off"></i>')}
   const r=$('ballRing');r.style.strokeDasharray=C.toFixed(1);r.style.strokeDashoffset=(C*(1-p)).toFixed(1);
   if(inner!==BALL.inner){BALL.inner=inner;$('ballIn').innerHTML=inner}
 }
