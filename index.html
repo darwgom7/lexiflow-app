@@ -125,7 +125,9 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
 .bar .in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 .ctl{display:flex;align-items:center;gap:10px}
-.playbtn{width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 35%,transparent);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none}
+.playbtn{position:relative;width:56px;height:56px;border-radius:50%;border:0;background:none;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,.18);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.playbtn .psph{position:absolute;inset:0;border-radius:50%;will-change:transform}
+.playbtn .pic{position:relative;display:inline-flex;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .playbtn:hover{filter:brightness(1.08)}
 .playbtn svg{width:24px;height:24px}
 .ctl .icon{width:48px;height:48px;border-radius:50%;padding:0}
@@ -133,7 +135,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .status{font-size:13px;color:var(--muted);min-height:1.3em;margin:0}
 .status.bad{color:var(--bad);font-weight:600}
 @media (max-width:480px){ article{font-size:calc(18px * var(--fs,1))} main{padding-top:22px} }
-.ccbtn{height:40px;min-width:48px;padding:0 10px;border-radius:999px;border:1.5px solid var(--line);background:none;font-weight:800;font-size:13px;letter-spacing:.06em}
+.ccbtn{height:40px;min-width:48px;padding:0 10px;border-radius:999px;border:1.5px solid var(--line);background:none;font-weight:800;font-size:13px;letter-spacing:.06em;margin-left:auto}
 .rdbtn{width:40px;height:40px;border-radius:50%;border:0;padding:0;background:none;margin-left:auto;flex:none;position:relative}
 .rdbtn .fl{position:absolute;right:-3px;bottom:-1px;width:15px;height:10px;border-radius:2px;box-shadow:0 0 0 1.5px var(--bg)}
 .rdrow{display:flex;gap:10px;overflow-x:auto;margin:0 -20px;padding:2px 20px 6px;scrollbar-width:none}
@@ -294,6 +296,36 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 .ball.sphere .bdot{background:#fff}
 .ball.sphere .bdot.off{background:none;box-shadow:inset 0 0 0 2.5px #fff}
 .ball.sphere.open .bsph{opacity:.35}
+
+/* reader picker */
+.rpick{position:fixed;inset:0;z-index:18}
+.rpick[hidden]{display:none}
+.rpscrim{position:absolute;inset:0;background:color-mix(in srgb,var(--bg) 55%,transparent);backdrop-filter:blur(1px);opacity:0;transition:opacity .18s ease}
+.rpick.open .rpscrim{opacity:1}
+.rptrack{position:absolute;left:0;right:0;bottom:var(--rpb,120px);display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:16px calc(50% - 108px);scrollbar-width:none;opacity:0;transform:translateY(12px);transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1)}
+.rptrack::-webkit-scrollbar{display:none}
+.rpick.open .rptrack{opacity:1;transform:none}
+.rpc{flex:none;width:216px;scroll-snap-align:center;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 14px 14px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 10px 28px rgba(0,0,0,.16);transform:scale(.88);opacity:.7;transition:transform .2s ease,opacity .2s ease}
+.rpc.cur{transform:none;opacity:1}
+.rps{position:relative;width:88px;height:88px;margin-bottom:4px}
+.rps .fl{position:absolute;right:0;bottom:4px;width:22px;height:15px;border-radius:3px;box-shadow:0 0 0 2px var(--card)}
+.rpc.talk .rps .sph{animation:rptalk .6s ease-in-out infinite alternate}
+@keyframes rptalk{from{transform:scale(1)}to{transform:scale(1.07)}}
+@media (prefers-reduced-motion:reduce){.rpc.talk .rps .sph{animation:none}}
+.rpn{font-weight:800;font-size:17px;color:var(--text)}
+.rpv{font-size:13px;color:var(--muted);margin-top:-2px}
+.rph{margin-top:6px;height:34px;padding:0 12px;white-space:nowrap;border-radius:999px;border:1px solid var(--line);background:none;color:var(--text);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.rph:disabled{opacity:.5}
+.rpu{width:100%;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rpu:disabled{opacity:.55}
+.rpclose{position:absolute;right:16px;top:max(16px,env(safe-area-inset-top));width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--text);display:flex;align-items:center;justify-content:center}
+.playtip{position:fixed;z-index:14;background:var(--text);color:var(--bg);font-size:13px;font-weight:700;padding:8px 12px;border-radius:10px;pointer-events:none}
+.playtip[hidden]{display:none}
+.fb.rdfb{padding:0;border:2px solid #fff;overflow:visible}
+.fb.rdfb .sph{border-radius:50%}
+.ball-l .fb.rdfb .nm{right:auto;left:100%;margin:0 0 0 8px}
+.fb.rdfb .fl{position:absolute;right:-4px;bottom:-2px;width:16px;height:11px;border-radius:2px;box-shadow:0 0 0 1.5px #fff}
+.fb.rdfb .nm{position:absolute;top:50%;transform:translateY(-50%);right:100%;margin-right:8px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -473,9 +505,8 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
     </div>
     <div class="ctl">
       <button class="ghost icon" id="prev" type="button" aria-label="Previous sentence" title="Previous sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7l-5 5 5 5"/><path d="M7 8v8"/></svg></button>
-      <button class="playbtn" id="playBtn" type="button" aria-label="Play"></button>
+      <button class="playbtn" id="playBtn" type="button" aria-label="Play" title="Play or pause. Hold to change reader"><span class="psph" id="playSph"></span><span class="pic" id="playIc"></span></button>
       <button class="ghost icon" id="next" type="button" aria-label="Next sentence" title="Next sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l5 5-5 5"/><path d="M17 8v8"/></svg></button>
-      <button class="rdbtn" id="rdBtn" type="button" aria-label="Reader" title="Change reader"></button>
       <button class="ccbtn" id="ccBtn" type="button" aria-label="Captions" title="Captions (current sentence, large)" aria-pressed="false">CC</button>
       <button class="speedchip" id="rate" type="button" aria-label="Speed and reading options"></button>
     </div>
@@ -493,6 +524,8 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
     <p class="fside" id="fNext"></p>
   </div>
 </div>
+<div class="rpick" id="rpick" hidden><div class="rpscrim" id="rpScrim"></div><div class="rptrack" id="rpTrack" aria-label="Readers"></div><button class="rpclose" id="rpClose" type="button" aria-label="Close readers"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button></div>
+<div class="playtip" id="playTip" hidden>Hold to change reader</div>
 <div class="ballfan" id="ballFan" hidden></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lxGrain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></svg>
 <button class="ball sphere" id="ball" type="button" aria-label="Controls" aria-expanded="false" hidden><span class="bsph" id="ballSph"></span><svg class="bsv" viewBox="0 0 56 56" aria-hidden="true"><circle class="bbg" cx="28" cy="28" r="27"/><circle class="btrack" cx="28" cy="28" r="23"/><circle class="bring" id="ballRing" cx="28" cy="28" r="23"/></svg><span class="bin" id="ballIn"></span></button>
@@ -529,7 +562,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.12.0';
+const VERSION='2.13.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -700,10 +733,12 @@ const azure=Object.assign({key:'',region:'eastus'},load('lexiflow.azure',{})||{}
 let docs=load('lexiflow.docs',null);
 if(!Array.isArray(docs))docs=[{id:'sample',title:'Small Steps, Clear Mind',raw:SAMPLE,sample:true,bi:0,ms:0,nb:0,updatedAt:0}];
 const saveDocs=()=>save('lexiflow.docs',docs);
-const BALL_DEF={side:'r',y:0.6,tap:'play',dbl:'repeat',long:'menu',btns:['play','repeat','next','cc','options','bars'],size:1,withBars:false,tuck:false,foot:true};
+const BALL_DEF={side:'r',y:0.6,tap:'play',dbl:'repeat',long:'menu',btns:['reader','repeat','next','cc','options','bars'],size:1,withBars:false,tuck:false,foot:true};
 settings.ball=Object.assign({},BALL_DEF,settings.ball||{});
 /* 2.6.2: tap plays, hold opens the menu. Move people who still had the old untouched gestures. */
 if(!settings.ballV){const B=settings.ball;if(B.tap==='menu'&&B.dbl==='play'&&B.long==='repeat'){B.tap='play';B.dbl='repeat';B.long='menu'}settings.ballV=2}
+/* 2.13: the fan's play button gives way to the reader (tap already plays). */
+if(settings.ballV<3){const B=settings.ball;if(JSON.stringify(B.btns)===JSON.stringify(['play','repeat','next','cc','options','bars'])&&B.tap==='play')B.btns=BALL_DEF.btns.slice();settings.ballV=3}
 const saveSettings=()=>save('lexiflow.settings',settings);
 const hasKey=()=>!!(azure.key&&azure.region);
 if(settings.hl==='fade'){settings.hl='both';settings.fade=true}
@@ -1220,7 +1255,7 @@ function tick(){
 function note(msg,bad){const n=$('note');n.textContent=msg||'';n.className='status'+(bad?' bad':'')}
 const I_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
 const I_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>';
-function updateBtn(){const b=$('playBtn');b.innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',P.playing?'Pause':'Play');ballPaint();ballPulse()}
+function updateBtn(){const b=$('playBtn');$('playIc').innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',(P.playing?'Pause':'Play')+'. Hold to change reader');if(P.playing)playTip();ballPaint();ballPulse()}
 function savePos(){
   const d=P.doc;if(!d)return;
   d.bi=P.i;d.ms=P.loaded===P.i?Math.round(audio.currentTime*1000):(d.ms||0);
@@ -1701,6 +1736,7 @@ function repeatSentence(){
 }
 function toggleCC(){settings.cc=!settings.cc;saveSettings();applyCC()}
 const BALL_ACTS={
+  reader:{l:'Change reader',i:()=>sphereHtml(readerColors()),f:()=>openFan(readerFanList(),76),keep:true},
   play:{l:'Play / pause',i:()=>P.playing?I_PAUSE:I_PLAY,f:()=>{P.playing?pauseAudio():play()}},
   prev:{l:'Previous sentence',i:()=>BI.back,f:()=>prev()},
   repeat:{l:'Repeat sentence',i:()=>BI.prev,f:repeatSentence},
@@ -1726,15 +1762,16 @@ function ballColors(){const e=$('ballSph');if(e)e.innerHTML=sphereHtml(readerCol
 /* The sphere moves with the voice: a small swell at each word start that fades out, still in pauses.
    Driven by the word timings we already have, so the audio itself is never rerouted. */
 function ballPulse(){
-  const e=$('ballSph'),b=$('ball');if(!e||b.hidden)return;
-  const c=e.firstChild&&e.firstChild.firstChild;
-  if(reduced||!P.playing||SH.waiting){e.style.transform='';if(c)c.style.transform='';return}
+  const els=[$('ballSph'),$('playSph')].filter(e=>e&&e.offsetParent!==null);if(!els.length)return;
+  const still=reduced||!P.playing||SH.waiting;
   const seg=P.segs[P.loaded];let v=0;
   if(seg&&seg.words&&P.loaded===P.i){const now=audio.currentTime*1000,k=wordAt(seg.words,now);
     if(k>=0){const dt=now-seg.words[k].ms,nx=seg.words[k+1];if(dt<700&&!(nx&&now>nx.ms))v=Math.exp(-dt/220)}}
   const t=performance.now()/1000;
-  e.style.transform='scale('+(1+v*0.06).toFixed(3)+')';
-  if(c)c.style.transform='rotate('+((t*30)%360).toFixed(1)+'deg) scale('+(1+v*0.14).toFixed(3)+')';
+  els.forEach(e=>{const c=e.firstChild&&e.firstChild.firstChild;
+    if(still){e.style.transform='';if(c)c.style.transform='';return}
+    e.style.transform='scale('+(1+v*0.06).toFixed(3)+')';
+    if(c)c.style.transform='rotate('+((t*30)%360).toFixed(1)+'deg) scale('+(1+v*0.14).toFixed(3)+')';});
 }
 function ballSync(){
   if(!BALL)return;
@@ -1797,37 +1834,42 @@ function fanList(){
   return l;
 }
 /* Fan of buttons around the ball. It turns toward the free space so no button leaves the screen. */
-function openFan(list){
-  const fan=$('ballFan'),b=$('ball');list=list||fanList();
+function openFan(list,gap){
+  const fan=$('ballFan'),b=$('ball');list=list||fanList();gap=gap||60;
   clearTimeout(BALL.tuckT);untuck();
   fan.textContent='';
   const s=ballSize(),cx=b.offsetLeft+s/2,cy=b.offsetTop+s/2,n=list.length,W=innerWidth,H=innerHeight,m=34;
   /* Start with a half circle toward the middle of the screen. Near a corner, turn it; if that is not
      enough, open it wider and flatter (same space between buttons) until every button fits. */
-  const r0=Math.max(100,n>1?(n-1)*60/2.62:0);
+  const r0=Math.max(100,n>1?(n-1)*gap/2.62:0);
   const base=settings.ball.side==='l'?0:Math.PI,dir=settings.ball.side==='l'?-1:1;
   const pts=(r,step,d)=>list.map((k,j)=>{const th=base+dir*(((n-1)/2-j)*step)+d;return [r*Math.cos(th),r*Math.sin(th)]});
   const fits=q=>q.every(([x,y])=>cx+x>=m&&cx+x<=W-m&&cy+y>=m&&cy+y<=H-m);
   let best=null;
   search:for(const k of [1,1.2,1.4,1.65,1.9,2.2]){
-    const r=r0*k,step=n>1?Math.min(2.62/(n-1),62/r):0;
+    const r=r0*k,step=n>1?Math.min(2.62/(n-1),(gap+2)/r):0;
     for(const deg of [0,10,-10,20,-20,30,-30,40,-40,50,-50,60,-60,70,-70,80,-80,90,-90]){
       const q=pts(r,step,deg*Math.PI/180);if(fits(q)){best=q;break search}
     }
   }
-  if(!best)best=pts(r0,n>1?Math.min(2.62/(n-1),62/r0):0,0).map(([x,y])=>[Math.min(W-m,Math.max(m,cx+x))-cx,Math.min(H-m,Math.max(m,cy+y))-cy]);
+  if(!best)best=pts(r0,n>1?Math.min(2.62/(n-1),(gap+2)/r0):0,0).map(([x,y])=>[Math.min(W-m,Math.max(m,cx+x))-cx,Math.min(H-m,Math.max(m,cy+y))-cy]);
   list.forEach((k,j)=>{
-    const a=k==='more'?{l:'More',i:()=>BI.more}:BALL_ACTS[k];
-    const btn=el('button','fb');btn.type='button';btn.innerHTML=a.i();btn.setAttribute('aria-label',a.l);btn.title=a.l;btn.dataset.k=k;
+    const rv=k.startsWith('rd:')?k.slice(3):null,rr=rv&&READERS[rv];
+    const a=k==='more'?{l:'More',i:()=>BI.more}:k==='rdall'?{l:'All readers',i:()=>BI.more}:rr?{l:'Read with '+rr.n,i:()=>sphereHtml(rr.c)+flagSvg(rr.a)+'<span class="nm">'+rr.n+'</span>'}:BALL_ACTS[k];
+    const btn=el('button','fb'+(rr||k==='reader'?' rdfb':''));btn.type='button';btn.innerHTML=a.i();btn.setAttribute('aria-label',a.l);btn.title=a.l;btn.dataset.k=k;
     if(a.on)btn.setAttribute('aria-pressed',String(!!a.on()));
     btn.style.left=cx+'px';btn.style.top=cy+'px';btn.dataset.dx=best[j][0].toFixed(1);btn.dataset.dy=best[j][1].toFixed(1);
     btn.addEventListener('click',e=>{
       e.stopPropagation();
       if(k==='more'){openFan(BALL.more);return}
+      if(k==='reader'){openFan(readerFanList(),76);return}
+      if(k==='rdall'){closeFan();openReaderPicker();return}
+      if(rv){closeFan();switchReader(rv);return}
       closeFan();BALL_ACTS[k].f();ballPaint();
     });
     fan.appendChild(btn);
   });
+  fan.classList.toggle('ball-l',settings.ball.side==='l');
   BALL.fan=list;fan.hidden=false;b.classList.add('open');b.setAttribute('aria-expanded','true');$('ballTurn').hidden=true;ballPaint();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     fan.classList.add('open');
@@ -1967,19 +2009,16 @@ function closeSheet(){$('scrim').classList.remove('open');$('sheet').classList.r
 
 /* Change the reader from anywhere. In a reading, the current part is read again by the new voice
    from the start of the sentence you were on. */
-function paintReaderBtn(){
-  const b=$('rdBtn');if(!b)return;const r=READERS[voiceName()];
-  b.innerHTML=sphereHtml(r?r.c:OTHER_SPHERE)+(r?flagSvg(r.a):'');
-  b.setAttribute('aria-label','Reader: '+(r?r.n:'custom voice')+'. Change reader');
-}
-async function switchReader(v){
-  if(v===voiceName())return;
+function paintReaderBtn(){const e=$('playSph');if(e)e.innerHTML=sphereHtml(readerColors())}
+async function switchReader(v,resume){
+  if(v===voiceName()){if(resume)play();return}
+  settings.recent=[voiceName()].concat((settings.recent||[]).filter(x=>x!==v&&x!==voiceName())).slice(0,8);
   settings.voice=v;saveSettings();ballColors();paintReaderBtn();
   if($('readers')&&view==='settings')renderReaders();
   if(view!=='reader'||!P.segs.length)return;
   P.segs.forEach(g=>{g.rec=null});
-  if(P.loaded!==P.i){prefetch&&prefetch(P.i);return}
-  const si=Math.max(0,curSentence()),was=P.playing,i=P.i;
+  if(P.loaded!==P.i){if(resume)play();return}
+  const si=Math.max(0,curSentence()),was=resume===undefined?P.playing:resume,i=P.i;
   P.loaded=-1;
   await playSeg(i,0,false);
   const seg=P.segs[i];if(P.i!==i||!seg||!seg.words)return;
@@ -1996,7 +2035,83 @@ function paintReaderRow(){
   });
   const on=row.querySelector('[aria-pressed="true"]');if(on)on.scrollIntoView({block:'nearest',inline:'center'});
 }
-$('rdBtn').addEventListener('click',openSheet);
+/* ---------- reader picker: hold the play sphere (or pick from the ball's fan) ---------- */
+const RP={was:false,cur:null,open:false};
+function sentenceText(){
+  const seg=P.segs[P.i];if(!seg)return '';
+  const si=Math.max(0,curSentence());const e=seg.sentEls&&seg.sentEls[si];
+  return ((e&&e.textContent)||seg.text||'').replace(/\s+/g,' ').trim().slice(0,220);
+}
+function openReaderPicker(){
+  if(RP.open)return;closeFan();$('playTip').hidden=true;
+  RP.was=P.playing;if(P.playing)pauseAudio();
+  const box=$('rpick'),tr=$('rpTrack');tr.textContent='';
+  Object.keys(READERS).forEach(v=>{
+    const r=READERS[v],c=el('div','rpc');c.dataset.v=v;c.setAttribute('role','group');c.setAttribute('aria-label',r.n+', '+ACCENT_NAME[r.a]+' English, '+r.t);
+    const sw=el('span','rps');sw.innerHTML=sphereHtml(r.c)+flagSvg(r.a);c.appendChild(sw);
+    c.appendChild(el('span','rpn',r.n));c.appendChild(el('span','rpv',r.t));
+    const hear=el('button','rph');hear.type='button';hear.innerHTML=I_SAMPLE+'<span>Hear your sentence</span>';
+    hear.addEventListener('click',e=>{e.stopPropagation();hearSentence(v,c,hear)});
+    const use=el('button','primary rpu',v===voiceName()?'Reading now':'Read with '+r.n);use.type='button';use.disabled=v===voiceName();
+    use.addEventListener('click',e=>{e.stopPropagation();closeReaderPicker(v)});
+    c.appendChild(hear);c.appendChild(use);
+    c.addEventListener('click',()=>c.scrollIntoView({behavior:reduced?'auto':'smooth',inline:'center',block:'nearest'}));
+    tr.appendChild(c);
+  });
+  box.style.setProperty('--rpb',(innerHeight-barTop()+12)+'px');
+  box.hidden=false;RP.open=true;
+  const on=tr.querySelector('[data-v="'+voiceName()+'"]');
+  requestAnimationFrame(()=>{if(on)on.scrollIntoView({block:'nearest',inline:'center'});box.classList.add('open');rpMark()});
+}
+function rpMark(){
+  const tr=$('rpTrack'),mid=tr.getBoundingClientRect().left+tr.clientWidth/2;let best=null,bd=1e9;
+  tr.querySelectorAll('.rpc').forEach(c=>{const r=c.getBoundingClientRect(),d=Math.abs(r.left+r.width/2-mid);if(d<bd){bd=d;best=c}});
+  tr.querySelectorAll('.rpc').forEach(c=>c.classList.toggle('cur',c===best));
+}
+function closeReaderPicker(v){
+  if(!RP.open)return;RP.open=false;
+  tester.pause();const box=$('rpick');box.classList.remove('open');
+  setTimeout(()=>{if(!RP.open){box.hidden=true;$('rpTrack').textContent=''}},reduced?0:180);
+  if(v&&v!==voiceName())switchReader(v,RP.was);
+  else if(RP.was)play();
+}
+async function hearSentence(v,card,btn){
+  const text=sentenceText()||('Hi, I am '+READERS[v].n+'. This is how I will read your texts.');
+  if(!hasKey()){note('Add your Azure key in Settings to hear the readers.',true);return}
+  document.querySelectorAll('.rpc.talk').forEach(x=>x.classList.remove('talk'));
+  btn.disabled=true;
+  try{
+    const rec=await getAudio(text,v);
+    tester.src=URL.createObjectURL(rec.blob);card.classList.add('talk');
+    tester.onended=()=>card.classList.remove('talk');tester.play().catch(()=>{});
+  }catch(e){note(e.message,true)}
+  finally{btn.disabled=false;refreshUsage()}
+}
+$('rpTrack').addEventListener('scroll',()=>requestAnimationFrame(rpMark),{passive:true});
+$('rpScrim').addEventListener('click',()=>closeReaderPicker());
+$('rpClose').addEventListener('click',()=>closeReaderPicker());
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&RP.open){e.stopImmediatePropagation();closeReaderPicker()}},true);
+/* Hold the play sphere for the readers; a tap still plays or pauses. */
+(function(){
+  const b=$('playBtn');let t=0,held=false;
+  b.addEventListener('pointerdown',e=>{if(e.button>0)return;held=false;clearTimeout(t);t=setTimeout(()=>{held=true;if(navigator.vibrate)navigator.vibrate(12);openReaderPicker()},500)});
+  ['pointerup','pointercancel','pointerleave'].forEach(n=>b.addEventListener(n,()=>clearTimeout(t)));
+  b.addEventListener('click',e=>{if(held){e.preventDefault();e.stopImmediatePropagation();held=false}},true);
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+})();
+function playTip(){
+  if(settings.rdTip||view!=='reader'||settings.imm)return;settings.rdTip=true;saveSettings();
+  const e=$('playTip'),r=$('playBtn').getBoundingClientRect();
+  e.style.left=Math.max(8,r.left)+'px';e.style.bottom=(innerHeight-r.top+10)+'px';e.hidden=false;
+  setTimeout(()=>{e.hidden=true},4500);
+}
+/* The ball's fan: readers as a second fan, recent ones first, then all of them in the picker. */
+function readerFanList(){
+  const cap=(innerWidth<600?6:9)-1,cur=voiceName();
+  const order=(settings.recent||[]).concat(Object.keys(READERS)).filter((v,i,a)=>READERS[v]&&v!==cur&&a.indexOf(v)===i);
+  return order.slice(0,cap).map(v=>'rd:'+v).concat('rdall');
+}
+
 paintReaderBtn();
 $('rate').addEventListener('click',openSheet);
 $('aaBtn').addEventListener('click',openSheet);
