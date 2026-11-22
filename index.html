@@ -483,7 +483,7 @@ body.imm.reading.foot-on .foot{display:flex}
 <script>
 (function(){
 'use strict';
-const VERSION='2.8.1';
+const VERSION='2.8.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1237,6 +1237,8 @@ function offerSettings(){
   const n=$('note');const b=el('button','linkbtn',' Open Settings');b.type='button';b.style.marginLeft='6px';
   b.addEventListener('click',openSettings);n.appendChild(b);
 }
+/* Leaving the finished state by jumping somewhere: the current part is no longer faded. */
+function unfinish(){if(P.finished){P.finished=false;setActive(P.i)}}
 /* Play after the end starts the reading over from the top. */
 function restart(){
   P.finished=false;
@@ -1324,7 +1326,7 @@ function curSentence(){
   const k=wordAt(seg.words,audio.currentTime*1000);
   return k<0?0:seg.wsent[k];
 }
-function seekTo(ms){shadowReset();audio.currentTime=Math.max(0,ms/1000);tick();if(!P.playing||audio.paused)play()}
+function seekTo(ms){shadowReset();unfinish();audio.currentTime=Math.max(0,ms/1000);tick();if(!P.playing||audio.paused)play()}
 /* Back and forward move one sentence, crossing into the next or previous part when needed. */
 function prev(){
   const playing=P.playing||!audio.paused;
@@ -1378,13 +1380,13 @@ $('ccClose').addEventListener('click',()=>{settings.cc=false;saveSettings();appl
 $('fCur').addEventListener('click',e=>{
   const w=e.target.closest('.w');if(!w)return;
   const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
-  audio.currentTime=seg.words[+w.dataset.k].ms/1000+0.001;
+  unfinish();audio.currentTime=seg.words[+w.dataset.k].ms/1000+0.001;
   if(!P.playing)play();else tick();
 });
 $('cc').addEventListener('click',e=>{
   const w=e.target.closest('.w');if(!w)return;
   const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
-  audio.currentTime=seg.words[+w.dataset.k].ms/1000+0.001;
+  unfinish();audio.currentTime=seg.words[+w.dataset.k].ms/1000+0.001;
   if(!P.playing)play();else tick();
 });
 $('page').addEventListener('click',e=>{
@@ -1394,7 +1396,7 @@ $('page').addEventListener('click',e=>{
   const w=e.target.closest('.w');
   const ms=w&&seg.words?seg.words[+w.dataset.k].ms:0;
   if(P.loaded===i&&audio.src){
-    audio.currentTime=ms/1000+0.001;
+    unfinish();audio.currentTime=ms/1000+0.001;
     if(!P.playing)play();else tick();
   }else playSeg(i,ms,true);
 });
