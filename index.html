@@ -255,6 +255,9 @@ body.imm.reading.foot-on .foot{display:flex}
 .viewtg .iconbtn[aria-pressed="true"]{background:var(--sc);color:var(--onsc)}
 .fab{position:fixed;right:20px;bottom:max(20px,env(safe-area-inset-bottom));height:56px;border:0;border-radius:16px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:15px;padding:0 20px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 20px rgba(0,0,0,.22);z-index:5}
 @media (min-width:760px){.fab{right:calc(50% - 340px)}}
+.jump{position:fixed;left:50%;transform:translateX(-50%);z-index:14;height:40px;padding:0 16px 0 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(0,0,0,.16);white-space:nowrap}
+.jump[hidden]{display:none}
+.jump svg{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -453,6 +456,7 @@ body.imm.reading.foot-on .foot{display:flex}
 <div class="ballfan" id="ballFan" hidden></div>
 <button class="ball" id="ball" type="button" aria-label="Controls" aria-expanded="false" hidden><svg class="bsv" viewBox="0 0 56 56" aria-hidden="true"><circle class="bbg" cx="28" cy="28" r="27"/><circle class="btrack" cx="28" cy="28" r="23"/><circle class="bring" id="ballRing" cx="28" cy="28" r="23"/></svg><span class="bin" id="ballIn"></span></button>
 <div class="ballturn" id="ballTurn" hidden></div>
+<button class="jump" id="jump" type="button" hidden></button>
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Reading options" hidden>
   <div class="in">
@@ -483,7 +487,7 @@ body.imm.reading.foot-on .foot{display:flex}
 <script>
 (function(){
 'use strict';
-const VERSION='2.8.2';
+const VERSION='2.9.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -807,7 +811,7 @@ function show(name){
   view=name;
   if(typeof applyCC==='function'&&P&&P.segs)$('focus').hidden=!(name==='reader'&&ccFocus());
   ['home','editor','reader','settings'].forEach(n=>{$(n).hidden=n!==name});
-  $('bar').hidden=name!=='reader';
+  $('bar').hidden=name!=='reader';if(name!=='reader')$('jump').hidden=true;
   $('settingsBtn').hidden=name==='settings';
   document.body.classList.toggle('reading',name==='reader');
   ballSync();
@@ -1018,7 +1022,7 @@ function openDoc(id){
   const d=findDoc(id);if(!d)return;
   stopAudio();
   const page=$('page');page.textContent='';
-  P.doc=d;P.segs=[];P.cur=-1;P.loaded=-1;
+  P.doc=d;P.segs=[];P.cur=-1;P.loaded=-1;JUMP.back=[];JUMP.fwd=[];$('jump').hidden=true;
   let list=null;
   buildBlocks(d).forEach(b=>{
     let node;
@@ -1354,6 +1358,7 @@ document.addEventListener('keydown',e=>{
   if(e.key===' '||e.code==='Space'){e.preventDefault();P.playing?pauseAudio():play()}
   else if(e.key==='ArrowLeft'){e.preventDefault();prev()}
   else if(e.key==='ArrowRight'){e.preventDefault();next()}
+  else if(e.key==='z'||e.key==='Z'){e.preventDefault();e.shiftKey?redoJump():undoJump()}
   else if(e.key==='h'||e.key==='H'){e.preventDefault();setImm(!settings.imm)}
   else if(e.key==='Escape'&&$('sheet').hidden){if(fanOpen())closeFan();else if(settings.imm)setImm(false)}
 });
@@ -1380,13 +1385,15 @@ $('ccClose').addEventListener('click',()=>{settings.cc=false;saveSettings();appl
 $('fCur').addEventListener('click',e=>{
   const w=e.target.closest('.w');if(!w)return;
   const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
-  unfinish();audio.currentTime=seg.words[+w.dataset.k].ms/1000+0.001;
+  const ms=seg.words[+w.dataset.k].ms;noteJump(posNow(),{i:P.loaded,ms});
+  unfinish();audio.currentTime=ms/1000+0.001;
   if(!P.playing)play();else tick();
 });
 $('cc').addEventListener('click',e=>{
   const w=e.target.closest('.w');if(!w)return;
   const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
-  unfinish();audio.currentTime=seg.words[+w.dataset.k].ms/1000+0.001;
+  const ms=seg.words[+w.dataset.k].ms;noteJump(posNow(),{i:P.loaded,ms});
+  unfinish();audio.currentTime=ms/1000+0.001;
   if(!P.playing)play();else tick();
 });
 $('page').addEventListener('click',e=>{
@@ -1395,11 +1402,41 @@ $('page').addEventListener('click',e=>{
   const i=+segEl.dataset.i,seg=P.segs[i];
   const w=e.target.closest('.w');
   const ms=w&&seg.words?seg.words[+w.dataset.k].ms:0;
+  noteJump(posNow(),{i,ms});
   if(P.loaded===i&&audio.src){
     unfinish();audio.currentTime=ms/1000+0.001;
     if(!P.playing)play();else tick();
   }else playSeg(i,ms,true);
 });
+
+
+/* ---------- undo a jump: tapping the text by mistake never loses your place ---------- */
+const JUMP={back:[],fwd:[],t:0};
+function posNow(){
+  if(P.loaded===P.i&&audio.src)return {i:P.i,ms:Math.round(audio.currentTime*1000)};
+  return {i:P.i,ms:(P.doc&&P.doc.bi===P.i)?(P.doc.ms||0):0};
+}
+function noteJump(from,to){
+  if(!P.segs.length||(from.i===to.i&&Math.abs(from.ms-to.ms)<3000))return; /* small moves are not worth an undo */
+  if(P.loaded<0&&!from.i&&!from.ms)return; /* nothing heard yet: there is no place to lose */
+  JUMP.back.push(from);if(JUMP.back.length>30)JUMP.back.shift();JUMP.fwd=[];
+  showJump('undo');
+}
+function goPos(p){
+  if(P.loaded===p.i&&audio.src){unfinish();shadowReset();audio.currentTime=p.ms/1000+0.001;tick();if(!P.playing)play()}
+  else playSeg(p.i,p.ms,true);
+}
+function undoJump(){const p=JUMP.back.pop();if(!p)return;JUMP.fwd.push(posNow());goPos(p);showJump(JUMP.fwd.length?'redo':null)}
+function redoJump(){const p=JUMP.fwd.pop();if(!p)return;JUMP.back.push(posNow());goPos(p);showJump('undo')}
+function showJump(kind){
+  const e=$('jump');clearTimeout(JUMP.t);
+  if(!kind||view!=='reader'){e.hidden=true;return}
+  e.dataset.kind=kind;
+  e.innerHTML=(kind==='undo'?'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Back to where you were':'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg>Go forward again');
+  e.style.bottom=(innerHeight-barTop()+12)+'px';e.hidden=false;
+  JUMP.t=setTimeout(()=>{e.hidden=true},6000);
+}
+$('jump').addEventListener('click',()=>{$('jump').dataset.kind==='undo'?undoJump():redoJump()});
 
 /* Lock screen and headphone controls. */
 function setMedia(){
