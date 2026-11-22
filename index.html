@@ -178,6 +178,47 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 .th.light{background:#F6F6F4;color:#1C1C1C}.th.sepia{background:#F4ECD8;color:#3B3226}.th.dark{background:#111;color:#F2F2F2}
 @media (prefers-reduced-motion:reduce){.sheet,.scrim{transition:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none !important;scroll-behavior:auto !important}}
+
+/* immersive mode: bars hidden, the floating ball is the remote */
+body.imm.reading .readhead,body.imm.reading .top{display:none}
+body.imm.reading main{padding-top:max(22px,env(safe-area-inset-top))}
+body.imm.reading .bar{background:var(--bg);border-top:0;padding-top:6px}
+body.imm.reading .bar .ctl,body.imm.reading .bar #note{display:none}
+body.imm.reading .bar .cccard{background:var(--card)}
+body.imm.reading #ccClose{display:none}
+.foot{display:none;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding:0 4px}
+body.imm.reading.foot-on .foot{display:flex}
+.ball{position:fixed;z-index:16;left:0;top:0;width:calc(56px * var(--bs,1));height:calc(56px * var(--bs,1));padding:0;border:0;background:none;border-radius:50%;touch-action:none;-webkit-user-select:none;user-select:none;filter:drop-shadow(0 4px 12px rgba(0,0,0,.22));transition:left .25s cubic-bezier(.2,.8,.2,1),top .25s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
+.ball[hidden]{display:none}
+.ball.drag{transition:none}
+.ball.tuck{opacity:.8}
+.ball svg.bsv{width:100%;height:100%;display:block}
+.bbg{fill:var(--card);stroke:var(--line);stroke-width:1}
+.btrack{fill:none;stroke:color-mix(in srgb,var(--accent) 20%,var(--card));stroke-width:4}
+.bring{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .25s linear}
+.bin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:800;font-size:calc(20px * var(--bs,1));font-variant-numeric:tabular-nums;pointer-events:none}
+.bin svg{width:calc(20px * var(--bs,1));height:calc(20px * var(--bs,1))}
+.bdot{width:calc(16px * var(--bs,1));height:calc(16px * var(--bs,1));border-radius:50%;background:var(--accent)}
+.ball.open .bring,.ball.open .btrack{opacity:0}
+.ball.open .bin{color:var(--text)}
+.ballfan{position:fixed;inset:0;z-index:15;background:rgba(0,0,0,.22);opacity:0;transition:opacity .18s ease}
+.ballfan[hidden]{display:none}
+.ballfan.open{opacity:1}
+.fb{position:absolute;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--text);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transform:translate(0,0) scale(.4);transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .16s ease}
+.fb svg{width:22px;height:22px}
+.fb .bt{font-weight:800;font-size:14px;letter-spacing:.04em}
+.fb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.ballturn{position:fixed;z-index:16;height:36px;padding:0 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.14);color:color-mix(in srgb,var(--accent) 75%,var(--text));font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px;white-space:nowrap;transform:translateY(-50%);pointer-events:none}
+.ballturn::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.ballturn.tip{text-transform:none;letter-spacing:0;font-weight:700;font-size:13px}
+.ballturn.tip::before{display:none}
+.ballturn[hidden]{display:none}
+.blist{display:flex;flex-direction:column}
+.brow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px;font-weight:600}
+.brow .lbl{flex:1}
+.brow .mv{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--muted);padding:0;display:inline-flex;align-items:center;justify-content:center}
+.brow .mv:disabled{opacity:.35}
+.brow input{width:17px;height:17px;accent-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -213,6 +254,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
             <button class="iconbtn" id="editCur" type="button" aria-label="Edit text" title="Edit text"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
             <button class="iconbtn" id="offlineBtn" type="button" aria-label="Save offline" title="Save offline"></button>
             <button class="iconbtn" id="aaBtn" type="button" aria-label="Reading options" title="Reading options"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18l5-12 5 12"/><path d="M4.7 14h6.6"/><path d="M14.5 18l3.5-8 3.5 8"/><path d="M15.6 15.5h4.8"/></svg></button>
+            <button class="iconbtn" id="immBtn" type="button" aria-label="Hide bars" title="Hide bars (H)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
           </span>
         </span>
         <span class="prog" id="progText"></span>
@@ -295,6 +337,28 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
     </div>
 
     <div class="stack">
+      <h2 class="label">Floating ball</h2>
+      <p class="muted small">Hide the bars with the corners button at the top of a reading, or press H. The ball stays as your remote: tap it for controls and drag it to either side.</p>
+      <div class="two">
+        <label class="field" for="bTap">Tap<select id="bTap"></select></label>
+        <label class="field" for="bDbl">Double tap<select id="bDbl"></select></label>
+        <label class="field" for="bLong">Long press<select id="bLong"></select></label>
+      </div>
+      <div class="stack" style="gap:6px">
+        <span class="muted small" style="font-weight:700">Buttons in the menu</span>
+        <span class="muted small">Phones show up to 6. Extra ones go under the last button.</span>
+        <div class="blist" id="bList"></div>
+        <div><button class="linkbtn" id="bReset" type="button">Reset buttons</button></div>
+      </div>
+      <label class="field" for="bSize">Size
+        <select id="bSize"><option value="0.85">Small</option><option value="1">Medium</option><option value="1.15">Large</option></select>
+      </label>
+      <label class="check" for="bWith"><input id="bWith" type="checkbox"> Show the ball when the bars are visible too</label>
+      <label class="check" for="bTuck"><input id="bTuck" type="checkbox"> Tuck it into the edge after 5 seconds without use</label>
+      <label class="check" for="bFoot"><input id="bFoot" type="checkbox"> Show time left at the bottom when the bars are hidden</label>
+    </div>
+
+    <div class="stack">
       <h2 class="label">Usage on this device</h2>
       <p class="small" id="usageText"></p>
       <p class="small" id="cacheText"></p>
@@ -330,6 +394,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
       <button class="speedchip" id="rate" type="button" aria-label="Speed and reading options"></button>
     </div>
     <p class="status" id="note" role="status"></p>
+    <div class="foot" id="foot"><span id="footLeft"></span><span id="footPart"></span><span id="footPct"></span></div>
   </div>
 </div>
 
@@ -342,6 +407,9 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
     <p class="fside" id="fNext"></p>
   </div>
 </div>
+<div class="ballfan" id="ballFan" hidden></div>
+<button class="ball" id="ball" type="button" aria-label="Controls" aria-expanded="false" hidden><svg class="bsv" viewBox="0 0 56 56" aria-hidden="true"><circle class="bbg" cx="28" cy="28" r="27"/><circle class="btrack" cx="28" cy="28" r="23"/><circle class="bring" id="ballRing" cx="28" cy="28" r="23"/></svg><span class="bin" id="ballIn"></span></button>
+<div class="ballturn" id="ballTurn" hidden></div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Reading options" hidden>
   <div class="in">
@@ -372,7 +440,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 <script>
 (function(){
 'use strict';
-const VERSION='2.5.1';
+const VERSION='2.6.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -543,6 +611,8 @@ const azure=Object.assign({key:'',region:'eastus'},load('lexiflow.azure',{})||{}
 let docs=load('lexiflow.docs',null);
 if(!Array.isArray(docs))docs=[{id:'sample',title:'Small Steps, Clear Mind',raw:SAMPLE,sample:true,bi:0,ms:0,nb:0,updatedAt:0}];
 const saveDocs=()=>save('lexiflow.docs',docs);
+const BALL_DEF={side:'r',y:0.6,tap:'menu',dbl:'play',long:'repeat',btns:['play','repeat','next','cc','options','bars'],size:1,withBars:false,tuck:false,foot:true};
+settings.ball=Object.assign({},BALL_DEF,settings.ball||{});
 const saveSettings=()=>save('lexiflow.settings',settings);
 const hasKey=()=>!!(azure.key&&azure.region);
 if(settings.hl==='fade'){settings.hl='both';settings.fade=true}
@@ -570,7 +640,8 @@ function applyTheme(){
   Object.keys(map).forEach(k=>r.style.setProperty(map[k],sc[k]));
   const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute('content',sc.bg);
   r.style.setProperty('--hh',String(settings.color==='auto'?SEED_HUE[settings.seed]:COLORS[settings.color][1]));
-  document.body.className='hl-'+(settings.hl||'both')+(settings.fade?' fade':'')+(settings.cc?' ccon':'')+(settings.cc&&settings.ccMode==='focus'?' focuson':'');
+  const reading=document.body.classList.contains('reading');
+  document.body.className=(reading?'reading ':'')+'hl-'+(settings.hl||'both')+(settings.fade?' fade':'')+(settings.cc?' ccon':'')+(settings.cc&&settings.ccMode==='focus'?' focuson':'')+(settings.imm?' imm':'')+(settings.ball.foot?' foot-on':'');
   if(settings.theme==='light'||settings.theme==='dark'||settings.theme==='sepia')r.setAttribute('data-theme',settings.theme);else r.removeAttribute('data-theme');
   r.style.setProperty('--fs',String(settings.fs||1));
 }
@@ -693,6 +764,8 @@ function show(name){
   ['home','editor','reader','settings'].forEach(n=>{$(n).hidden=n!==name});
   $('bar').hidden=name!=='reader';
   $('settingsBtn').hidden=name==='settings';
+  document.body.classList.toggle('reading',name==='reader');
+  ballSync();
   window.scrollTo(0,0);
 }
 function pct(d){return d.nb?Math.round(Math.min(d.nb,(d.bi||0)+(d.done?1:0))/d.nb*100):0}
@@ -863,7 +936,9 @@ function progress(){
   if(P.loaded===P.i&&audio.duration)f+=Math.min(1,audio.currentTime/audio.duration);
   $('progFill').style.width=(f/n*100)+'%';
   const left=timeLeft(),txt='Part '+(P.i+1)+' of '+P.segs.length+(left?' · '+left:'');
-  if(txt!==P.leftShown){P.leftShown=txt;$('progText').textContent=txt}
+  if(txt!==P.leftShown){P.leftShown=txt;$('progText').textContent=txt;$('footLeft').textContent=left||'';$('footPart').textContent='Part '+(P.i+1)+' of '+P.segs.length}
+  const pc=Math.round(f/n*100)+'%';if(pc!==P.pctShown){P.pctShown=pc;$('footPct').textContent=pc}
+  ballPaint();
 }
 /* ---------- time estimates ---------- */
 const MS_PER_WORD=380; /* about 160 words a minute at 1.0x */
@@ -966,7 +1041,7 @@ function tick(){
 function note(msg,bad){const n=$('note');n.textContent=msg||'';n.className='status'+(bad?' bad':'')}
 const I_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
 const I_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>';
-function updateBtn(){const b=$('playBtn');b.innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',P.playing?'Pause':'Play')}
+function updateBtn(){const b=$('playBtn');b.innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',P.playing?'Pause':'Play');ballPaint()}
 function savePos(){
   const d=P.doc;if(!d)return;
   d.bi=P.i;d.ms=P.loaded===P.i?Math.round(audio.currentTime*1000):(d.ms||0);
@@ -1052,7 +1127,7 @@ const SH={key:null,si:-1,start:0,end:Infinity,done:0,fired:false,waiting:false,p
 const shadowOn=()=>{const g=P.segs[P.loaded];return ((settings.rep??1)!==1||(settings.gap||'off')!=='off')&&!!g&&(g.kind==='paragraph'||g.kind==='li')};
 const byPara=()=>settings.unit==='para';
 function shadowReset(){shadowCancel();SH.key=null;SH.done=0;SH.fired=false}
-function setTurn(t){['ccTurn','fTurn'].forEach(id=>{const e=$(id);e.textContent=t||'';e.hidden=!t})}
+function setTurn(t){['ccTurn','fTurn'].forEach(id=>{const e=$(id);e.textContent=t||'';e.hidden=!t});ballTurn(t);ballPaint()}
 function shadowCancel(){if(SH.timer){clearTimeout(SH.timer);clearInterval(SH.tick)}SH.timer=0;SH.waiting=false;SH.cb=null;setTurn('')}
 function sentBounds(seg,si){
   const st=sentStarts(seg);let end=Infinity;
@@ -1085,7 +1160,7 @@ function shadowFire(goOn){
   const ms=gapMs();
   if(!ms){next();return}
   SH.waiting=true;SH.cb=next;SH.pausing=!audio.paused;audio.pause();
-  const t0=Date.now(),label=again&&rep!==1?'Your turn. Say it, then it plays again':'Your turn. Say it out loud';
+  const t0=Date.now();SH.t0=t0;SH.ms=ms;const label=again&&rep!==1?'Your turn. Say it, then it plays again':'Your turn. Say it out loud';
   const turn=rep===0?'Your turn · '+SH.done:rep>1?'Your turn · '+SH.done+' of '+rep:'Your turn';
   const show=()=>{const left=Math.max(0,Math.ceil((ms-(Date.now()-t0))/1000));setTurn(turn+' · '+left+'s');if(!settings.cc)note(label+' · '+left+'s')};show();
   SH.tick=setInterval(show,250);
@@ -1131,6 +1206,8 @@ document.addEventListener('keydown',e=>{
   if(e.key===' '||e.code==='Space'){e.preventDefault();P.playing?pauseAudio():play()}
   else if(e.key==='ArrowLeft'){e.preventDefault();prev()}
   else if(e.key==='ArrowRight'){e.preventDefault();next()}
+  else if(e.key==='h'||e.key==='H'){e.preventDefault();setImm(!settings.imm)}
+  else if(e.key==='Escape'&&$('sheet').hidden){if(fanOpen())closeFan();else if(settings.imm)setImm(false)}
 });
 
 audio.addEventListener('play',()=>{cancelAnimationFrame(P.raf);P.raf=requestAnimationFrame(tick)});
@@ -1221,6 +1298,7 @@ function openSettings(){
   $('voiceSel').value=known?settings.voice:'custom';
   $('voiceCustom').value=known?'':settings.voice;
   $('voiceCustomWrap').hidden=known;
+  paintBallSettings();
   $('autoflow').checked=!!settings.autoflow;$('themeSel').value=settings.theme;renderSwatches();$('hlSel').value=settings.hl||'both';$('fadeChk').checked=!!settings.fade;
   $('voiceMsg').textContent='';$('voiceMsg').className='msg';$('libMsg').textContent='';
   refreshUsage();
@@ -1313,6 +1391,231 @@ $('importFile').addEventListener('change',async e=>{
     m.textContent='Imported: '+added+' new, '+updated+' updated.';m.className='msg ok';
   }catch(err){m.textContent='That file is not a LexiFlow library.';m.className='msg bad'}
 });
+
+/* ---------- floating ball: the remote control when the bars are hidden ---------- */
+const SVG=d=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>';
+const BI={
+  prev:SVG('<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>'),
+  next:SVG('<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>'),
+  back:SVG('<path d="M19 5L9 12l10 7z" fill="currentColor"/><path d="M5 5v14"/>'),
+  fwd:SVG('<path d="M5 5l10 7-10 7z" fill="currentColor"/><path d="M19 5v14"/>'),
+  repeat:SVG('<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>'),
+  focus:SVG('<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>'),
+  options:SVG('<path d="M3 18l5-12 5 12"/><path d="M4.7 14h6.6"/><path d="M14.5 18l3.5-8 3.5 8"/><path d="M15.6 15.5h4.8"/>'),
+  bars:SVG('<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M3 15h18"/>'),
+  more:SVG('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>'),
+  x:SVG('<path d="M18 6L6 18"/><path d="M6 6l12 12"/>')
+};
+function repeatSentence(){
+  if(P.loaded===P.i&&P.segs[P.i]&&P.segs[P.i].words){const st=sentStarts(P.segs[P.i]),si=curSentence();if(si>=0&&st[si]!=null){seekTo(st[si]);return}}
+  seekTo(0);
+}
+function toggleCC(){settings.cc=!settings.cc;saveSettings();applyCC()}
+const BALL_ACTS={
+  play:{l:'Play / pause',i:()=>P.playing?I_PAUSE:I_PLAY,f:()=>{P.playing?pauseAudio():play()}},
+  prev:{l:'Previous sentence',i:()=>BI.back,f:()=>prev()},
+  repeat:{l:'Repeat sentence',i:()=>BI.prev,f:repeatSentence},
+  next:{l:'Next sentence',i:()=>BI.fwd,f:()=>next()},
+  cc:{l:'Captions',i:()=>'<span class="bt">CC</span>',f:toggleCC,on:()=>!!settings.cc},
+  focus:{l:'Focus mode',i:()=>BI.focus,f:()=>{const f=ccFocus();settings.cc=true;settings.ccMode=f?'band':'focus';saveSettings();applyCC()},on:()=>ccFocus()},
+  options:{l:'Reading options',i:()=>BI.options,f:()=>openSheet()},
+  bars:{l:'Show or hide bars',i:()=>BI.bars,f:()=>setImm(!settings.imm),on:()=>!settings.imm}
+};
+const GESTURES=[['menu','Open menu'],['play','Play / pause'],['repeat','Repeat sentence'],['next','Next sentence'],['prev','Previous sentence'],['cc','Captions on or off'],['bars','Show or hide bars'],['none','Nothing']];
+var BALL={inner:'',fan:null,more:null,tapT:0,tuckT:0,tipT:0,drag:null};
+const fanOpen=()=>!!(BALL&&BALL.fan);
+const ballVisible=()=>view==='reader'&&(!!settings.imm||!!settings.ball.withBars);
+function ballSize(){return 56*(settings.ball.size||1)}
+/* Never leave the reader without a way back to the bars or the menu. */
+function tapAction(){const B=settings.ball,g=[B.tap,B.dbl,B.long];return g.includes('menu')||g.includes('bars')?B.tap:'menu'}
+function setImm(on){
+  settings.imm=!!on;saveSettings();closeFan();applyTheme();ballSync();
+  if(on&&!settings.ballTip&&view==='reader'){settings.ballTip=true;saveSettings();ballTip('Tap the ball for controls. Drag it to move it.')}
+  if(view==='reader'&&P.segs.length)progress();
+}
+function ballSync(){
+  if(!BALL)return;
+  const b=$('ball'),vis=ballVisible();
+  b.hidden=!vis;
+  if(!vis){closeFan();$('ballTurn').hidden=true;b.classList.remove('tuck');return}
+  b.style.setProperty('--bs',String(settings.ball.size||1));
+  ballPlace();ballPaint();armTuck();
+}
+function barTop(){const bar=$('bar');return bar.hidden?innerHeight:bar.getBoundingClientRect().top}
+function ballPlace(){
+  const b=$('ball'),s=ballSize(),B=settings.ball,W=innerWidth,H=innerHeight;
+  const lo=s/2+12,hi=Math.max(lo,Math.min(H,barTop())-s/2-10);
+  const cy=Math.min(hi,Math.max(lo,(B.y||0.6)*H));
+  const tuck=b.classList.contains('tuck');
+  const x=B.side==='l'?(tuck?-s*0.62:8):(tuck?W-s*0.38:W-s-8);
+  b.style.left=Math.round(x)+'px';b.style.top=Math.round(cy-s/2)+'px';
+  placeTurn();
+}
+function armTuck(){
+  clearTimeout(BALL.tuckT);
+  if(!settings.ball.tuck||fanOpen())return;
+  BALL.tuckT=setTimeout(()=>{if(!fanOpen()&&!$('ball').hidden){$('ball').classList.add('tuck');ballPlace()}},5000);
+}
+function untuck(){const b=$('ball');if(b.classList.contains('tuck')){b.classList.remove('tuck');ballPlace();return true}return false}
+function ballPaint(){
+  if(!BALL)return;
+  const b=$('ball');if(b.hidden)return;
+  const C=2*Math.PI*23;let p=0,inner;
+  if(fanOpen())inner=BI.x;
+  else if(SH.waiting&&SH.ms){const left=Math.max(0,SH.ms-(Date.now()-SH.t0));p=left/SH.ms;inner=String(Math.max(1,Math.ceil(left/1000)))}
+  else{p=(P.loaded===P.i&&audio.duration)?Math.min(1,audio.currentTime/audio.duration):0;inner=P.playing?'<i class="bdot"></i>':I_PLAY}
+  const r=$('ballRing');r.style.strokeDasharray=C.toFixed(1);r.style.strokeDashoffset=(C*(1-p)).toFixed(1);
+  if(inner!==BALL.inner){BALL.inner=inner;$('ballIn').innerHTML=inner}
+}
+/* "Your turn" next to the ball when there is no caption card to show it. */
+function ballTurn(t){
+  if(!BALL)return;
+  const e=$('ballTurn');if(e.classList.contains('tip')&&!t)return;
+  const show=!!t&&!settings.cc&&!$('ball').hidden&&!fanOpen();
+  if(show){e.classList.remove('tip');clearTimeout(BALL.tipT);e.textContent=t.replace(/ · \d+s$/,'');placeTurn()}
+  e.hidden=!show;
+}
+function ballTip(t){
+  const e=$('ballTurn');e.classList.add('tip');e.textContent=t;e.hidden=false;placeTurn();
+  clearTimeout(BALL.tipT);BALL.tipT=setTimeout(()=>{e.classList.remove('tip');e.hidden=true},4500);
+}
+function placeTurn(){
+  const e=$('ballTurn'),b=$('ball');if(b.hidden)return;
+  const s=ballSize(),top=b.offsetTop+s/2;e.style.top=top+'px';
+  if(settings.ball.side==='l'){e.style.left=(b.offsetLeft+s+8)+'px';e.style.right='auto'}
+  else{e.style.right=(innerWidth-b.offsetLeft+8)+'px';e.style.left='auto'}
+}
+function fanList(){
+  const B=settings.ball,cap=innerWidth<600?6:9;
+  let l=(B.btns||[]).filter(k=>BALL_ACTS[k]);
+  if(!l.includes('bars')&&![B.tap,B.dbl,B.long].includes('bars'))l.push('bars');
+  if(l.length>cap){BALL.more=l.slice(cap-1);l=l.slice(0,cap-1).concat('more')}else BALL.more=null;
+  return l;
+}
+/* Fan of buttons around the ball. It turns toward the free space so no button leaves the screen. */
+function openFan(list){
+  const fan=$('ballFan'),b=$('ball');list=list||fanList();
+  clearTimeout(BALL.tuckT);untuck();
+  fan.textContent='';
+  const s=ballSize(),cx=b.offsetLeft+s/2,cy=b.offsetTop+s/2,n=list.length,W=innerWidth,H=innerHeight,m=34;
+  /* Start with a half circle toward the middle of the screen. Near a corner, turn it; if that is not
+     enough, open it wider and flatter (same space between buttons) until every button fits. */
+  const r0=Math.max(100,n>1?(n-1)*60/2.62:0);
+  const base=settings.ball.side==='l'?0:Math.PI,dir=settings.ball.side==='l'?-1:1;
+  const pts=(r,step,d)=>list.map((k,j)=>{const th=base+dir*(((n-1)/2-j)*step)+d;return [r*Math.cos(th),r*Math.sin(th)]});
+  const fits=q=>q.every(([x,y])=>cx+x>=m&&cx+x<=W-m&&cy+y>=m&&cy+y<=H-m);
+  let best=null;
+  search:for(const k of [1,1.2,1.4,1.65,1.9,2.2]){
+    const r=r0*k,step=n>1?Math.min(2.62/(n-1),62/r):0;
+    for(const deg of [0,10,-10,20,-20,30,-30,40,-40,50,-50,60,-60,70,-70,80,-80,90,-90]){
+      const q=pts(r,step,deg*Math.PI/180);if(fits(q)){best=q;break search}
+    }
+  }
+  if(!best)best=pts(r0,n>1?Math.min(2.62/(n-1),62/r0):0,0).map(([x,y])=>[Math.min(W-m,Math.max(m,cx+x))-cx,Math.min(H-m,Math.max(m,cy+y))-cy]);
+  list.forEach((k,j)=>{
+    const a=k==='more'?{l:'More',i:()=>BI.more}:BALL_ACTS[k];
+    const btn=el('button','fb');btn.type='button';btn.innerHTML=a.i();btn.setAttribute('aria-label',a.l);btn.title=a.l;btn.dataset.k=k;
+    if(a.on)btn.setAttribute('aria-pressed',String(!!a.on()));
+    btn.style.left=cx+'px';btn.style.top=cy+'px';btn.dataset.dx=best[j][0].toFixed(1);btn.dataset.dy=best[j][1].toFixed(1);
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(k==='more'){openFan(BALL.more);return}
+      closeFan();BALL_ACTS[k].f();ballPaint();
+    });
+    fan.appendChild(btn);
+  });
+  BALL.fan=list;fan.hidden=false;b.classList.add('open');b.setAttribute('aria-expanded','true');$('ballTurn').hidden=true;ballPaint();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    fan.classList.add('open');
+    fan.querySelectorAll('.fb').forEach((x,j)=>{x.style.transitionDelay=(reduced?0:j*18)+'ms';x.style.opacity='1';x.style.transform='translate('+x.dataset.dx+'px,'+x.dataset.dy+'px) scale(1)'});
+  }));
+}
+function closeFan(){
+  if(!BALL||!BALL.fan)return;
+  const fan=$('ballFan'),b=$('ball');BALL.fan=null;
+  fan.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');
+  fan.querySelectorAll('.fb').forEach(x=>{x.style.transitionDelay='0ms';x.style.opacity='0';x.style.transform='translate(0,0) scale(.4)'});
+  setTimeout(()=>{if(!BALL.fan){fan.hidden=true;fan.textContent=''}},reduced?0:180);
+  ballPaint();armTuck();
+}
+function ballDo(a){
+  if(a==='menu'){fanOpen()?closeFan():openFan();return}
+  if(a==='none'||!BALL_ACTS[a])return;
+  BALL_ACTS[a].f();ballPaint();armTuck();
+}
+$('ballFan').addEventListener('click',closeFan);
+(function(){
+  const b=$('ball');
+  b.addEventListener('pointerdown',e=>{
+    if(e.button>0)return;
+    const tucked=b.classList.contains('tuck');
+    BALL.drag={x0:e.clientX,y0:e.clientY,l:b.offsetLeft,t:b.offsetTop,moved:false,long:false,tucked};
+    try{b.setPointerCapture(e.pointerId)}catch(_){}
+    clearTimeout(BALL.longT);clearTimeout(BALL.tuckT);
+    if(!tucked&&!fanOpen())BALL.longT=setTimeout(()=>{const d=BALL.drag;if(d&&!d.moved){d.long=true;if(navigator.vibrate)navigator.vibrate(12);ballDo(settings.ball.long)}},500);
+  });
+  b.addEventListener('pointermove',e=>{
+    const d=BALL.drag;if(!d)return;
+    const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
+    if(!d.moved&&Math.hypot(dx,dy)>8){d.moved=true;clearTimeout(BALL.longT);closeFan();b.classList.remove('tuck');b.classList.add('drag');$('ballTurn').hidden=true}
+    if(d.moved){b.style.left=(d.l+dx)+'px';b.style.top=(d.t+dy)+'px'}
+  });
+  const end=(e,cancel)=>{
+    const d=BALL.drag;BALL.drag=null;clearTimeout(BALL.longT);if(!d)return;
+    if(d.moved){
+      const s=ballSize(),cx=b.offsetLeft+s/2,cy=b.offsetTop+s/2;
+      settings.ball.side=cx<innerWidth/2?'l':'r';settings.ball.y=Math.round(cy/innerHeight*1000)/1000;saveSettings();
+      b.classList.remove('drag');ballPlace();armTuck();return;
+    }
+    if(cancel||d.long){armTuck();return}
+    if(d.tucked){untuck();armTuck();return}
+    if(fanOpen()){closeFan();return}
+    const B=settings.ball,tap=tapAction();
+    if(!B.dbl||B.dbl==='none'){ballDo(tap);return}
+    if(BALL.tapT){clearTimeout(BALL.tapT);BALL.tapT=0;ballDo(B.dbl);return}
+    BALL.tapT=setTimeout(()=>{BALL.tapT=0;ballDo(tap)},260);
+  };
+  b.addEventListener('pointerup',e=>end(e,false));
+  b.addEventListener('pointercancel',e=>end(e,true));
+  b.addEventListener('click',e=>{if(e.detail===0)ballDo(tapAction())}); /* keyboard Enter or Space */
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+})();
+window.addEventListener('resize',()=>{if(!$('ball').hidden){closeFan();ballPlace()}});
+/* The caption card grows and shrinks: keep the ball above it. */
+if('ResizeObserver' in window)new ResizeObserver(()=>{if(!$('ball').hidden&&!BALL.drag)ballPlace()}).observe($('bar'));
+$('immBtn').addEventListener('click',()=>setImm(true));
+/* Settings for the ball */
+function paintBallSettings(){
+  const B=settings.ball;
+  [['bTap','tap'],['bDbl','dbl'],['bLong','long']].forEach(([id,key])=>{
+    const s=$(id);s.textContent='';GESTURES.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o)});s.value=B[key]||'none';
+  });
+  $('bSize').value=String(B.size||1);$('bWith').checked=!!B.withBars;$('bTuck').checked=!!B.tuck;$('bFoot').checked=!!B.foot;
+  const list=$('bList');list.textContent='';
+  const sel=(B.btns||[]).filter(k=>BALL_ACTS[k]),rest=Object.keys(BALL_ACTS).filter(k=>!sel.includes(k));
+  sel.concat(rest).forEach(k=>{
+    const on=sel.includes(k),idx=sel.indexOf(k),row=el('div','brow');
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=on;cb.setAttribute('aria-label',BALL_ACTS[k].l);
+    cb.addEventListener('change',()=>{B.btns=cb.checked?sel.concat(k):sel.filter(x=>x!==k);saveSettings();paintBallSettings()});
+    const ic=el('span','mv');ic.style.border='0';ic.innerHTML=BALL_ACTS[k].i();ic.setAttribute('aria-hidden','true');
+    row.appendChild(cb);row.appendChild(ic);row.appendChild(el('span','lbl',BALL_ACTS[k].l));
+    if(on){
+      [['up',-1,'M18 15l-6-6-6 6'],['down',1,'M6 9l6 6 6-6']].forEach(([nm,dv,d])=>{
+        const mv=el('button','mv');mv.type='button';mv.innerHTML=SVG('<path d="'+d+'"/>');mv.setAttribute('aria-label','Move '+BALL_ACTS[k].l+' '+nm);
+        const j=idx+dv;mv.disabled=j<0||j>=sel.length;
+        mv.addEventListener('click',()=>{const a=sel.slice();[a[idx],a[j]]=[a[j],a[idx]];B.btns=a;saveSettings();paintBallSettings()});
+        row.appendChild(mv);
+      });
+    }
+    list.appendChild(row);
+  });
+}
+[['bTap','tap'],['bDbl','dbl'],['bLong','long']].forEach(([id,key])=>$(id).addEventListener('change',e=>{settings.ball[key]=e.target.value;saveSettings()}));
+$('bSize').addEventListener('change',e=>{settings.ball.size=+e.target.value;saveSettings()});
+$('bWith').addEventListener('change',e=>{settings.ball.withBars=e.target.checked;saveSettings()});
+$('bTuck').addEventListener('change',e=>{settings.ball.tuck=e.target.checked;saveSettings()});
+$('bFoot').addEventListener('change',e=>{settings.ball.foot=e.target.checked;saveSettings();applyTheme()});
+$('bReset').addEventListener('click',()=>{settings.ball.btns=BALL_DEF.btns.slice();saveSettings();paintBallSettings()});
 
 /* ---------- wiring ---------- */
 $('brand').addEventListener('click',()=>{renderHome();show('home')});
