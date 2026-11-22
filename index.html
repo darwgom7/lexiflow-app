@@ -133,7 +133,15 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .status{font-size:13px;color:var(--muted);min-height:1.3em;margin:0}
 .status.bad{color:var(--bad);font-weight:600}
 @media (max-width:480px){ article{font-size:calc(18px * var(--fs,1))} main{padding-top:22px} }
-.ccbtn{height:40px;min-width:48px;padding:0 10px;border-radius:999px;border:1.5px solid var(--line);background:none;font-weight:800;font-size:13px;letter-spacing:.06em;margin-left:auto}
+.ccbtn{height:40px;min-width:48px;padding:0 10px;border-radius:999px;border:1.5px solid var(--line);background:none;font-weight:800;font-size:13px;letter-spacing:.06em}
+.rdbtn{width:40px;height:40px;border-radius:50%;border:0;padding:0;background:none;margin-left:auto;flex:none;position:relative}
+.rdbtn .fl{position:absolute;right:-3px;bottom:-1px;width:15px;height:10px;border-radius:2px;box-shadow:0 0 0 1.5px var(--bg)}
+.rdrow{display:flex;gap:10px;overflow-x:auto;margin:0 -20px;padding:2px 20px 6px;scrollbar-width:none}
+.rdrow::-webkit-scrollbar{display:none}
+.rdc{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;padding:0;color:var(--text);font-size:12px;font-weight:700}
+.rdc .ring{width:52px;height:52px;border-radius:50%;padding:3px;box-sizing:border-box;position:relative}
+.rdc[aria-pressed="true"] .ring{box-shadow:0 0 0 2px var(--accent)}
+.rdc .fl{position:absolute;right:-2px;bottom:0;width:15px;height:10px;border-radius:2px;box-shadow:0 0 0 1.5px var(--card)}
 .ccbtn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
 .cccard{position:relative;background:var(--bg);border-radius:18px;padding:14px 46px;text-align:center;min-height:84px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center}
 .cctext{font-family:var(--read);font-size:calc(22px * var(--fs,1));line-height:1.5;max-height:calc(4 * 1.5em);overflow-y:auto;scrollbar-width:none;color:var(--text)}
@@ -348,6 +356,8 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
           <input id="azRegion" type="text" autocomplete="off" spellcheck="false" placeholder="eastus">
         </label>
       </div>
+      <div class="acts"><button class="primary" id="saveVoice" type="button">Save key</button></div>
+      <p class="msg" id="voiceMsg" role="status"></p>
       <div class="field"><span>Reader</span><div class="readers" id="readers" role="radiogroup" aria-label="Reader"></div></div>
       <label class="field" for="voiceSel" hidden>Voice
         <select id="voiceSel">
@@ -368,12 +378,8 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
       </label>
       <label class="field" for="voiceCustom" id="voiceCustomWrap" hidden>Exact voice name
         <input id="voiceCustom" type="text" autocomplete="off" spellcheck="false" placeholder="en-US-AriaNeural">
+        <button class="ghost" id="useCustom" type="button" style="align-self:flex-start;margin-top:8px">Use this voice</button>
       </label>
-      <div class="acts">
-        <button class="primary" id="saveVoice" type="button">Save</button>
-        <button class="ghost" id="testVoice" type="button">Test voice</button>
-      </div>
-      <p class="msg" id="voiceMsg" role="status"></p>
       <p class="muted small">Your key stays in this browser and is only sent to Microsoft Azure. Each paragraph is generated once and saved on this device, so reading it again costs nothing and works offline.</p>
     </div>
 
@@ -469,6 +475,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
       <button class="ghost icon" id="prev" type="button" aria-label="Previous sentence" title="Previous sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7l-5 5 5 5"/><path d="M7 8v8"/></svg></button>
       <button class="playbtn" id="playBtn" type="button" aria-label="Play"></button>
       <button class="ghost icon" id="next" type="button" aria-label="Next sentence" title="Next sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l5 5-5 5"/><path d="M17 8v8"/></svg></button>
+      <button class="rdbtn" id="rdBtn" type="button" aria-label="Reader" title="Change reader"></button>
       <button class="ccbtn" id="ccBtn" type="button" aria-label="Captions" title="Captions (current sentence, large)" aria-pressed="false">CC</button>
       <button class="speedchip" id="rate" type="button" aria-label="Speed and reading options"></button>
     </div>
@@ -495,6 +502,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Reading options" hidden>
   <div class="in">
     <div class="grab"></div>
+    <div class="stack" style="gap:10px"><h3>Reader</h3><div class="rdrow" id="rdRow"></div></div>
     <div class="stack" style="gap:10px"><h3>Text size</h3>
       <div class="stepper"><button type="button" id="fsDown" aria-label="Smaller text" style="font-size:15px">A</button><span class="val" id="fsVal">100%</span><button type="button" id="fsUp" aria-label="Larger text" style="font-size:22px">A</button></div>
     </div>
@@ -521,7 +529,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.11.0';
+const VERSION='2.12.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1534,28 +1542,36 @@ function readVoiceForm(){
 }
 function vmsg(t,kind){const m=$('voiceMsg');m.textContent=t;m.className='msg'+(kind?' '+kind:'')}
 $('voiceSel').addEventListener('change',()=>{$('voiceCustomWrap').hidden=$('voiceSel').value!=='custom'});
-$('saveVoice').addEventListener('click',()=>{
-  const f=readVoiceForm();
-  if(!f.voice){vmsg('Type the voice name.','bad');return}
-  azure.key=f.key;azure.region=f.region;save('lexiflow.azure',azure);
-  settings.voice=f.voice;saveSettings();ballColors();
-  vmsg(f.key?'Saved.':'Saved. Add a key to hear the voice.',f.key?'ok':'');
+/* Save key checks it with a two-word request, so a wrong key shows up here and not mid-reading. */
+$('saveVoice').addEventListener('click',async()=>{
+  const f=readVoiceForm(),changed=f.key!==azure.key||f.region!==azure.region;
+  azure.key=f.key;azure.region=f.region;save('lexiflow.azure',azure);refreshUsage();
+  if(!f.key){vmsg('Saved. Add a key to hear the voices.');return}
+  if(!changed){vmsg('Saved.','ok');return}
+  const btn=$('saveVoice');btn.disabled=true;vmsg('Checking the key with Azure…');
+  try{await queued(()=>synthesize('Hi.',voiceName()));vmsg('Saved. The key works.','ok')}
+  catch(e){vmsg(e.message,'bad')}
+  finally{btn.disabled=false;refreshUsage()}
+});
+$('useCustom').addEventListener('click',()=>{
+  const v=$('voiceCustom').value.trim();if(!v){vmsg('Type the voice name.','bad');return}
+  switchReader(v);vmsg('Saved. Tap play in a reading to hear it.','ok');
 });
 const tester=new Audio();
 /* ---------- readers: each voice gets a face, a flag and a name ---------- */
 const READERS={
-  'en-US-AvaMultilingualNeural':{n:'Ava',a:'us',g:'f',t:'Warm, clear',c:['#7C4DFF','#F0ABFC','#60A5FA']},
-  'en-US-AndrewMultilingualNeural':{n:'Andrew',a:'us',g:'m',t:'Calm, steady',c:['#0F766E','#34D399','#FDE68A']},
-  'en-US-EmmaMultilingualNeural':{n:'Emma',a:'us',g:'f',t:'Bright, friendly',c:['#F2672E','#FDBA74','#F9A8D4']},
+  'en-US-AvaMultilingualNeural':{n:'Ava',a:'us',g:'f',t:'Warm',c:['#7C4DFF','#F0ABFC','#60A5FA']},
+  'en-US-AndrewMultilingualNeural':{n:'Andrew',a:'us',g:'m',t:'Calm',c:['#0F766E','#34D399','#FDE68A']},
+  'en-US-EmmaMultilingualNeural':{n:'Emma',a:'us',g:'f',t:'Bright',c:['#F2672E','#FDBA74','#F9A8D4']},
   'en-US-BrianMultilingualNeural':{n:'Brian',a:'us',g:'m',t:'Easygoing',c:['#1E5FB8','#7DD3FC','#C4B5FD']},
   'en-US-JennyNeural':{n:'Jenny',a:'us',g:'f',t:'Upbeat',c:['#D9467F','#FDA4AF','#FDE68A']},
-  'en-US-GuyNeural':{n:'Guy',a:'us',g:'m',t:'Energetic, news',c:['#C2410C','#FBBF24','#FB7185']},
+  'en-US-GuyNeural':{n:'Guy',a:'us',g:'m',t:'Energetic',c:['#C2410C','#FBBF24','#FB7185']},
   'en-GB-SoniaNeural':{n:'Sonia',a:'gb',g:'f',t:'Storyteller',c:['#3949AB','#F472B6','#FBBF24']},
-  'en-GB-RyanNeural':{n:'Ryan',a:'gb',g:'m',t:'Relaxed, natural',c:['#3F6B2A','#A3E635','#67E8F9']},
-  'en-AU-NatashaNeural':{n:'Natasha',a:'au',g:'f',t:'Bright, lively',c:['#0E7490','#5EEAD4','#FDE047']},
-  'en-AU-WilliamNeural':{n:'William',a:'au',g:'m',t:'Calm narrator',c:['#9A3412','#FDBA74','#A78BFA']},
-  'en-IN-NeerjaNeural':{n:'Neerja',a:'in',g:'f',t:'Clear, cheerful',c:['#E07B1F','#FDE68A','#F472B6']},
-  'en-IN-PrabhatNeural':{n:'Prabhat',a:'in',g:'m',t:'Steady, formal',c:['#166534','#86EFAC','#93C5FD']}
+  'en-GB-RyanNeural':{n:'Ryan',a:'gb',g:'m',t:'Relaxed',c:['#3F6B2A','#A3E635','#67E8F9']},
+  'en-AU-NatashaNeural':{n:'Natasha',a:'au',g:'f',t:'Lively',c:['#0E7490','#5EEAD4','#FDE047']},
+  'en-AU-WilliamNeural':{n:'William',a:'au',g:'m',t:'Narrator',c:['#9A3412','#FDBA74','#A78BFA']},
+  'en-IN-NeerjaNeural':{n:'Neerja',a:'in',g:'f',t:'Cheerful',c:['#E07B1F','#FDE68A','#F472B6']},
+  'en-IN-PrabhatNeural':{n:'Prabhat',a:'in',g:'m',t:'Formal',c:['#166534','#86EFAC','#93C5FD']}
 };
 const ACCENT_NAME={us:'American',gb:'British',au:'Australian',in:'Indian'};
 /* Each reader is a sphere of its own colors with a grain on top: no faces, no gender drawn. */
@@ -1587,7 +1603,7 @@ function renderReaders(){
     const pick=()=>{
       $('voiceSel').value=v;$('voiceCustomWrap').hidden=!custom;renderReaders();
       if(custom){$('voiceCustom').focus();return}
-      settings.voice=v;saveSettings();ballColors();vmsg(r.n+' reads from now on.','ok');
+      switchReader(v);vmsg(r.n+' reads from now on.','ok');
     };
     c.addEventListener('click',pick);
     c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}});
@@ -1606,19 +1622,6 @@ async function sampleReader(v,btn){
   finally{azure.key=old.key;azure.region=old.region;btn.disabled=false;refreshUsage()}
 }
 
-$('testVoice').addEventListener('click',async()=>{
-  const f=readVoiceForm();
-  if(!f.key){vmsg('Paste your key first.','bad');return}
-  if(!f.voice){vmsg('Type the voice name.','bad');return}
-  const btn=$('testVoice');btn.disabled=true;vmsg('Asking Azure…');
-  const old={key:azure.key,region:azure.region};azure.key=f.key;azure.region=f.region;
-  try{
-    const r=await queued(()=>synthesize('Hi! This is how I will read your texts in LexiFlow.',f.voice));
-    tester.src=URL.createObjectURL(r.blob);tester.play().catch(()=>{});
-    vmsg('It works. Tap Save to keep these settings.','ok');
-  }catch(e){vmsg(e.message,'bad')}
-  finally{azure.key=old.key;azure.region=old.region;btn.disabled=false;refreshUsage()}
-});
 function renderSwatches(){
   const sb=$('seedSwatches');sb.textContent='';
   Object.keys(ACCENTS).forEach(name=>{
@@ -1946,6 +1949,7 @@ const SPEEDS=[0.7,0.8,0.9,1,1.1,1.25,1.5];
 const fmtRate=r=>(r%1===0?r.toFixed(1):String(r))+'x';
 function setRate(r){settings.rate=r;audio.playbackRate=r;saveSettings();paintSheet()}
 function paintSheet(){
+  paintReaderRow();
   if(view==='reader'&&P.segs.length)progress();
   $('rate').textContent=fmtRate(settings.rate)+((settings.rep??1)!==1?' · '+((settings.rep??1)===0?'∞':settings.rep+'×'):'')+((settings.gap||'off')!=='off'?' · ⏸':'');
   $('fsVal').textContent=Math.round((settings.fs||1)*100)+'%';
@@ -1960,6 +1964,40 @@ function paintSheet(){
 }
 function openSheet(){paintSheet();$('scrim').hidden=false;$('sheet').hidden=false;requestAnimationFrame(()=>{$('scrim').classList.add('open');$('sheet').classList.add('open')})}
 function closeSheet(){$('scrim').classList.remove('open');$('sheet').classList.remove('open');setTimeout(()=>{$('scrim').hidden=true;$('sheet').hidden=true},reduced?0:240)}
+
+/* Change the reader from anywhere. In a reading, the current part is read again by the new voice
+   from the start of the sentence you were on. */
+function paintReaderBtn(){
+  const b=$('rdBtn');if(!b)return;const r=READERS[voiceName()];
+  b.innerHTML=sphereHtml(r?r.c:OTHER_SPHERE)+(r?flagSvg(r.a):'');
+  b.setAttribute('aria-label','Reader: '+(r?r.n:'custom voice')+'. Change reader');
+}
+async function switchReader(v){
+  if(v===voiceName())return;
+  settings.voice=v;saveSettings();ballColors();paintReaderBtn();
+  if($('readers')&&view==='settings')renderReaders();
+  if(view!=='reader'||!P.segs.length)return;
+  P.segs.forEach(g=>{g.rec=null});
+  if(P.loaded!==P.i){prefetch&&prefetch(P.i);return}
+  const si=Math.max(0,curSentence()),was=P.playing,i=P.i;
+  P.loaded=-1;
+  await playSeg(i,0,false);
+  const seg=P.segs[i];if(P.i!==i||!seg||!seg.words)return;
+  const st=sentStarts(seg);try{audio.currentTime=((st[si]||0)+1)/1000}catch(e){}
+  if(was)play();
+}
+function paintReaderRow(){
+  const row=$('rdRow');if(!row)return;row.textContent='';
+  Object.keys(READERS).forEach(v=>{
+    const r=READERS[v],b=el('button','rdc');b.type='button';b.setAttribute('aria-pressed',String(v===voiceName()));
+    b.setAttribute('aria-label',r.n+', '+ACCENT_NAME[r.a]+' English, '+r.t);
+    const ring=el('span','ring');ring.innerHTML=sphereHtml(r.c)+flagSvg(r.a);b.appendChild(ring);b.appendChild(el('span',null,r.n));
+    b.addEventListener('click',()=>{switchReader(v);paintReaderRow()});row.appendChild(b);
+  });
+  const on=row.querySelector('[aria-pressed="true"]');if(on)on.scrollIntoView({block:'nearest',inline:'center'});
+}
+$('rdBtn').addEventListener('click',openSheet);
+paintReaderBtn();
 $('rate').addEventListener('click',openSheet);
 $('aaBtn').addEventListener('click',openSheet);
 $('scrim').addEventListener('click',closeSheet);
