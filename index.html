@@ -139,7 +139,7 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .cctext{font-family:var(--read);font-size:calc(22px * var(--fs,1));line-height:1.5;max-height:calc(4 * 1.5em);overflow-y:auto;scrollbar-width:none;color:var(--text)}
 .cctext::-webkit-scrollbar{display:none}
 .cctext .w,.fcur .w{cursor:pointer}
-.cctools{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:2px}
+.cctools{position:absolute;top:50%;right:6px;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px}
 .cctools button{width:34px;height:34px;border:0;background:none;color:var(--muted);border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
 .cctools button:hover{color:var(--text)}
 .ccturn{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--accent) 75%,var(--text));margin-bottom:8px;font-variant-numeric:tabular-nums}
@@ -185,7 +185,6 @@ body.imm.reading main{padding-top:max(22px,env(safe-area-inset-top))}
 body.imm.reading .bar{background:var(--bg);border-top:0;padding-top:6px}
 body.imm.reading .bar .ctl,body.imm.reading .bar #note{display:none}
 body.imm.reading .bar .cccard{background:var(--card)}
-body.imm.reading #ccClose{display:none}
 .foot{display:none;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding:0 4px}
 body.imm.reading.foot-on .foot{display:flex}
 .ball{position:fixed;z-index:16;left:0;top:0;width:calc(56px * var(--bs,1));height:calc(56px * var(--bs,1));padding:0;border:0;background:none;border-radius:50%;touch-action:none;-webkit-user-select:none;user-select:none;filter:drop-shadow(0 4px 12px rgba(0,0,0,.22));transition:left .25s cubic-bezier(.2,.8,.2,1),top .25s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
@@ -441,7 +440,7 @@ body.imm.reading.foot-on .foot{display:flex}
 <script>
 (function(){
 'use strict';
-const VERSION='2.6.2';
+const VERSION='2.6.3';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1023,7 +1022,14 @@ function ccShow(seg,k){
   const lh=sp.offsetHeight||30;
   if(sp.offsetTop+lh>box.scrollTop+box.clientHeight||sp.offsetTop<box.scrollTop)box.scrollTop=Math.max(0,sp.offsetTop-lh);
 }
+/* The caption card has no × when CC can be turned off from the player or the ball. It comes back
+   only in immersive mode when the ball has no CC button and no CC gesture. */
+function ccCloseSync(){
+  const B=settings.ball,ballCC=(B.btns||[]).includes('cc')||[B.tap,B.dbl,B.long].includes('cc');
+  $('ccClose').style.display=settings.imm&&!ballCC?'':'none';
+}
 function applyCC(){
+  ccCloseSync();
   const on=!!settings.cc,f=ccFocus();
   $('cc').hidden=!on||f;$('focus').hidden=!f||view!=='reader';
   document.body.classList.toggle('ccon',on);document.body.classList.toggle('focuson',f);
@@ -1432,7 +1438,7 @@ function ballSize(){return 56*(settings.ball.size||1)}
 /* Never leave the reader without a way back to the bars or the menu. */
 function tapAction(){const B=settings.ball,g=[B.tap,B.dbl,B.long];return g.includes('menu')||g.includes('bars')?B.tap:'menu'}
 function setImm(on){
-  settings.imm=!!on;saveSettings();closeFan();applyTheme();ballSync();
+  settings.imm=!!on;saveSettings();closeFan();applyTheme();ballSync();ccCloseSync();
   if(on&&!settings.ballTip&&view==='reader'){settings.ballTip=true;saveSettings();ballTip(tapAction()==='play'?'Tap to play or pause. Hold for more.':tapAction()==='menu'?'Tap the ball for controls. Drag it to move it.':'Hold the ball for more. Drag it to move it.')}
   if(view==='reader'&&P.segs.length)progress();
 }
@@ -1599,7 +1605,7 @@ function paintBallSettings(){
   sel.concat(rest).forEach(k=>{
     const on=sel.includes(k),idx=sel.indexOf(k),row=el('div','brow');
     const cb=document.createElement('input');cb.type='checkbox';cb.checked=on;cb.setAttribute('aria-label',BALL_ACTS[k].l);
-    cb.addEventListener('change',()=>{B.btns=cb.checked?sel.concat(k):sel.filter(x=>x!==k);saveSettings();paintBallSettings()});
+    cb.addEventListener('change',()=>{B.btns=cb.checked?sel.concat(k):sel.filter(x=>x!==k);saveSettings();paintBallSettings();ccCloseSync()});
     const ic=el('span','mv');ic.style.border='0';ic.innerHTML=BALL_ACTS[k].i();ic.setAttribute('aria-hidden','true');
     row.appendChild(cb);row.appendChild(ic);row.appendChild(el('span','lbl',BALL_ACTS[k].l));
     if(on){
@@ -1613,7 +1619,7 @@ function paintBallSettings(){
     list.appendChild(row);
   });
 }
-[['bTap','tap'],['bDbl','dbl'],['bLong','long']].forEach(([id,key])=>$(id).addEventListener('change',e=>{settings.ball[key]=e.target.value;saveSettings()}));
+[['bTap','tap'],['bDbl','dbl'],['bLong','long']].forEach(([id,key])=>$(id).addEventListener('change',e=>{settings.ball[key]=e.target.value;saveSettings();ccCloseSync()}));
 $('bSize').addEventListener('change',e=>{settings.ball.size=+e.target.value;saveSettings()});
 $('bWith').addEventListener('change',e=>{settings.ball.withBars=e.target.checked;saveSettings()});
 $('bTuck').addEventListener('change',e=>{settings.ball.tuck=e.target.checked;saveSettings()});
