@@ -191,7 +191,7 @@ body.imm.reading.foot-on .foot{display:flex}
 .ball[hidden]{display:none}
 .ball.drag{transition:none}
 .ball.tuck{opacity:.8}
-.ball svg.bsv{width:100%;height:100%;display:block}
+.ball svg.bsv{position:relative;width:100%;height:100%;display:block}
 .bbg{fill:var(--card);stroke:var(--line);stroke-width:1}
 .btrack{fill:none;stroke:color-mix(in srgb,var(--accent) 20%,var(--card));stroke-width:4}
 .bring{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .25s linear}
@@ -264,14 +264,28 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 .rd:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
 .rd[aria-checked="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .rd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.rd .face{width:44px;height:44px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center}
-.rd .face.other{background:var(--seg,var(--line));color:var(--muted)}
-.rd .nm{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-weight:700;font-size:15px;color:var(--text)}
+.rd .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;font-weight:700;font-size:15px;color:var(--text)}
+.rd .vibe{font-weight:500;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rd .plus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:400}
 .rd .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rd .fw{position:relative;flex:none;width:44px;height:44px}
 .rd .fl{position:absolute;right:-4px;bottom:-1px;width:18px;height:12px;border-radius:2.5px;box-shadow:0 0 0 1.5px var(--card)}
 .rd .smp{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--text);display:inline-flex;align-items:center;justify-content:center;padding:0 0 0 2px;flex:none}
 .rd .smp:disabled{opacity:.5}
+
+/* reader spheres */
+.sph{position:relative;display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;isolation:isolate}
+.sph .sc{position:absolute;inset:-18%;border-radius:50%;filter:blur(5px);will-change:transform}
+.sph .sg{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:overlay;opacity:.5}
+.sph::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.ball .bsph{position:absolute;inset:2px;border-radius:50%;will-change:transform}
+.ball.sphere .bbg{fill:transparent;stroke:none}
+.ball.sphere .btrack{stroke:rgba(255,255,255,.35)}
+.ball.sphere .bring{stroke:#fff}
+.ball.sphere .bin{color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.ball.sphere .bdot{background:#fff}
+.ball.sphere .bdot.off{background:none;box-shadow:inset 0 0 0 2.5px #fff}
+.ball.sphere.open .bsph{opacity:.35}
 </style>
 </head>
 <body>
@@ -473,7 +487,8 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
   </div>
 </div>
 <div class="ballfan" id="ballFan" hidden></div>
-<button class="ball" id="ball" type="button" aria-label="Controls" aria-expanded="false" hidden><svg class="bsv" viewBox="0 0 56 56" aria-hidden="true"><circle class="bbg" cx="28" cy="28" r="27"/><circle class="btrack" cx="28" cy="28" r="23"/><circle class="bring" id="ballRing" cx="28" cy="28" r="23"/></svg><span class="bin" id="ballIn"></span></button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lxGrain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></svg>
+<button class="ball sphere" id="ball" type="button" aria-label="Controls" aria-expanded="false" hidden><span class="bsph" id="ballSph"></span><svg class="bsv" viewBox="0 0 56 56" aria-hidden="true"><circle class="bbg" cx="28" cy="28" r="27"/><circle class="btrack" cx="28" cy="28" r="23"/><circle class="bring" id="ballRing" cx="28" cy="28" r="23"/></svg><span class="bin" id="ballIn"></span></button>
 <div class="ballturn" id="ballTurn" hidden></div>
 <button class="jump" id="jump" type="button" hidden></button>
 <div class="scrim" id="scrim" hidden></div>
@@ -506,7 +521,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.10.0';
+const VERSION='2.11.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1191,13 +1206,13 @@ function tick(){
     if(shadowCheck())return;
     setWord(wordAt(seg.words,audio.currentTime*1000));
   }
-  progress();
+  progress();ballPulse();
   if(!audio.paused&&!audio.ended)P.raf=requestAnimationFrame(tick);
 }
 function note(msg,bad){const n=$('note');n.textContent=msg||'';n.className='status'+(bad?' bad':'')}
 const I_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
 const I_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>';
-function updateBtn(){const b=$('playBtn');b.innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',P.playing?'Pause':'Play');ballPaint()}
+function updateBtn(){const b=$('playBtn');b.innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',P.playing?'Pause':'Play');ballPaint();ballPulse()}
 function savePos(){
   const d=P.doc;if(!d)return;
   d.bi=P.i;d.ms=P.loaded===P.i?Math.round(audio.currentTime*1000):(d.ms||0);
@@ -1523,37 +1538,31 @@ $('saveVoice').addEventListener('click',()=>{
   const f=readVoiceForm();
   if(!f.voice){vmsg('Type the voice name.','bad');return}
   azure.key=f.key;azure.region=f.region;save('lexiflow.azure',azure);
-  settings.voice=f.voice;saveSettings();
+  settings.voice=f.voice;saveSettings();ballColors();
   vmsg(f.key?'Saved.':'Saved. Add a key to hear the voice.',f.key?'ok':'');
 });
 const tester=new Audio();
 /* ---------- readers: each voice gets a face, a flag and a name ---------- */
 const READERS={
-  'en-US-AvaMultilingualNeural':{n:'Ava',a:'us',g:'f',skin:'#F2C7A5',hair:'#5B3A29',bg:'#E9E3FF',top:'#8B5CF6'},
-  'en-US-AndrewMultilingualNeural':{n:'Andrew',a:'us',g:'m',skin:'#E3AE88',hair:'#2B2420',bg:'#DDF3EA',top:'#2E6B57'},
-  'en-US-EmmaMultilingualNeural':{n:'Emma',a:'us',g:'f',skin:'#F6D3BA',hair:'#C68A3E',bg:'#FFE6D9',top:'#F2672E'},
-  'en-US-BrianMultilingualNeural':{n:'Brian',a:'us',g:'m',skin:'#B9825A',hair:'#2E1E14',bg:'#DDEBF8',top:'#1E6FB8'},
-  'en-US-JennyNeural':{n:'Jenny',a:'us',g:'f',skin:'#8A5A3C',hair:'#1D1714',bg:'#FCE1EC',top:'#D9467F'},
-  'en-US-GuyNeural':{n:'Guy',a:'us',g:'m',skin:'#F0C4A0',hair:'#9A6430',bg:'#FFF1CF',top:'#C9921A'},
-  'en-GB-SoniaNeural':{n:'Sonia',a:'gb',g:'f',skin:'#F3CDB3',hair:'#7A2E1F',bg:'#E1E7FA',top:'#3949AB'},
-  'en-GB-RyanNeural':{n:'Ryan',a:'gb',g:'m',skin:'#E8B995',hair:'#6B4A2B',bg:'#E6EEE3',top:'#4E7A3A'},
-  'en-AU-NatashaNeural':{n:'Natasha',a:'au',g:'f',skin:'#EFC09C',hair:'#D9A441',bg:'#DDF2F7',top:'#1F8AA6'},
-  'en-AU-WilliamNeural':{n:'William',a:'au',g:'m',skin:'#D9A07A',hair:'#4A3424',bg:'#F7E4DA',top:'#A4532F'},
-  'en-IN-NeerjaNeural':{n:'Neerja',a:'in',g:'f',skin:'#A8714B',hair:'#151110',bg:'#FFEBD6',top:'#E07B1F'},
-  'en-IN-PrabhatNeural':{n:'Prabhat',a:'in',g:'m',skin:'#9C6644',hair:'#1A1411',bg:'#E2F1E4',top:'#2F7D45'}
+  'en-US-AvaMultilingualNeural':{n:'Ava',a:'us',g:'f',t:'Warm, clear',c:['#7C4DFF','#F0ABFC','#60A5FA']},
+  'en-US-AndrewMultilingualNeural':{n:'Andrew',a:'us',g:'m',t:'Calm, steady',c:['#0F766E','#34D399','#FDE68A']},
+  'en-US-EmmaMultilingualNeural':{n:'Emma',a:'us',g:'f',t:'Bright, friendly',c:['#F2672E','#FDBA74','#F9A8D4']},
+  'en-US-BrianMultilingualNeural':{n:'Brian',a:'us',g:'m',t:'Easygoing',c:['#1E5FB8','#7DD3FC','#C4B5FD']},
+  'en-US-JennyNeural':{n:'Jenny',a:'us',g:'f',t:'Upbeat',c:['#D9467F','#FDA4AF','#FDE68A']},
+  'en-US-GuyNeural':{n:'Guy',a:'us',g:'m',t:'Energetic, news',c:['#C2410C','#FBBF24','#FB7185']},
+  'en-GB-SoniaNeural':{n:'Sonia',a:'gb',g:'f',t:'Storyteller',c:['#3949AB','#F472B6','#FBBF24']},
+  'en-GB-RyanNeural':{n:'Ryan',a:'gb',g:'m',t:'Relaxed, natural',c:['#3F6B2A','#A3E635','#67E8F9']},
+  'en-AU-NatashaNeural':{n:'Natasha',a:'au',g:'f',t:'Bright, lively',c:['#0E7490','#5EEAD4','#FDE047']},
+  'en-AU-WilliamNeural':{n:'William',a:'au',g:'m',t:'Calm narrator',c:['#9A3412','#FDBA74','#A78BFA']},
+  'en-IN-NeerjaNeural':{n:'Neerja',a:'in',g:'f',t:'Clear, cheerful',c:['#E07B1F','#FDE68A','#F472B6']},
+  'en-IN-PrabhatNeural':{n:'Prabhat',a:'in',g:'m',t:'Steady, formal',c:['#166534','#86EFAC','#93C5FD']}
 };
 const ACCENT_NAME={us:'American',gb:'British',au:'Australian',in:'Indian'};
-let faceN=0;
-function readerFace(r,s){
-  const id='fc'+(++faceN),f=r.g==='f';
-  const back=f?'<path d="M11 23c0-9 4.6-14 11-14s11 5 11 14v13H11z" fill="'+r.hair+'"/>':'';
-  const top=f?'<path d="M13.4 21c-.2-6.6 3.6-10.6 8.6-10.6s8.8 4 8.6 10.6c-3.4-1-6.6-3.4-8.4-6.6-1.8 3.4-5.2 5.8-8.8 6.6z" fill="'+r.hair+'"/>'
-             :'<path d="M13.2 20c-.6-6.4 3.4-10.6 8.8-10.6s9.4 4.2 8.8 10.6c-1.4-2.8-4.2-4.6-8.8-4.8-4.6.2-7.4 2-8.8 4.8z" fill="'+r.hair+'"/>';
-  return '<svg class="face" viewBox="0 0 44 44" width="'+s+'" height="'+s+'" aria-hidden="true"><defs><clipPath id="'+id+'"><circle cx="22" cy="22" r="22"/></clipPath></defs><g clip-path="url(#'+id+')"><rect width="44" height="44" fill="'+r.bg+'"/>'+back
-    +'<path d="M7 46c1.2-8 7.4-11.6 15-11.6S35.8 38 37 46z" fill="'+r.top+'"/><rect x="18.6" y="28" width="6.8" height="7.4" rx="2.6" fill="'+r.skin+'"/>'
-    +'<ellipse cx="22" cy="21.4" rx="8.6" ry="9.6" fill="'+r.skin+'"/>'+top
-    +'<circle cx="18.8" cy="22.4" r="1.05" fill="#2A1D16"/><circle cx="25.2" cy="22.4" r="1.05" fill="#2A1D16"/><path d="M19.4 26q2.6 1.9 5.2 0" stroke="#2A1D16" stroke-width="1.05" fill="none" stroke-linecap="round"/></g></svg>';
-}
+/* Each reader is a sphere of its own colors with a grain on top: no faces, no gender drawn. */
+const OTHER_SPHERE=['#52525B','#A1A1AA','#D4D4D8'];
+const sphereBg=c=>'radial-gradient(circle at 30% 28%,'+c[1]+' 0%,transparent 58%),radial-gradient(circle at 74% 72%,'+c[2]+' 0%,transparent 55%),'+c[0];
+function sphereHtml(c){return '<span class="sph"><i class="sc" style="background:'+sphereBg(c)+'"></i><svg class="sg" viewBox="0 0 40 40" preserveAspectRatio="none" aria-hidden="true"><rect width="40" height="40" filter="url(#lxGrain)"/></svg></span>'}
+const readerColors=()=>{const r=READERS[voiceName()];return r?r.c:OTHER_SPHERE};
 const FLAGS={
   us:'<rect width="18" height="12" fill="#fff"/><g fill="#B22234"><rect width="18" height="1.72"/><rect y="3.43" width="18" height="1.72"/><rect y="6.86" width="18" height="1.72"/><rect y="10.28" width="18" height="1.72"/></g><rect width="8" height="6.86" fill="#3C3B6E"/>',
   gb:'<rect width="18" height="12" fill="#012169"/><path d="M0 0l18 12M18 0L0 12" stroke="#fff" stroke-width="2.4"/><path d="M0 0l18 12M18 0L0 12" stroke="#C8102E" stroke-width=".9"/><path d="M9 0v12M0 6h18" stroke="#fff" stroke-width="3.6"/><path d="M9 0v12M0 6h18" stroke="#C8102E" stroke-width="2"/>',
@@ -1568,10 +1577,9 @@ function renderReaders(){
   VOICES.forEach(v=>{
     const r=READERS[v],custom=v==='custom';
     const c=el('div','rd');c.setAttribute('role','radio');c.tabIndex=0;c.setAttribute('aria-checked',String(cur===v));
-    c.setAttribute('aria-label',custom?'Other voice, type its name':r.n+', '+ACCENT_NAME[r.a]+' English, '+(r.g==='f'?'female':'male'));
-    if(custom){const ic=el('span','face other');ic.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';c.appendChild(ic)}
-    else{const fw=el('span','fw');fw.innerHTML=readerFace(r,44)+flagSvg(r.a);c.appendChild(fw)} /* the flag sits on the face like a badge */
-    const nm=el('span','nm');nm.appendChild(el('span','who',custom?'Other':r.n));c.appendChild(nm);
+    c.setAttribute('aria-label',custom?'Other voice, type its name':r.n+', '+ACCENT_NAME[r.a]+' English, '+(r.g==='f'?'female':'male')+', '+r.t);
+    const fw=el('span','fw');fw.innerHTML=sphereHtml(custom?OTHER_SPHERE:r.c)+(custom?'<span class="plus" aria-hidden="true">+</span>':flagSvg(r.a));c.appendChild(fw); /* the flag sits on the sphere like a badge */
+    const nm=el('span','nm');nm.appendChild(el('span','who',custom?'Other':r.n));nm.appendChild(el('span','vibe',custom?'Any Azure voice':r.t));c.appendChild(nm);
     if(!custom){
       const sb=el('button','smp');sb.type='button';sb.innerHTML=I_SAMPLE;sb.setAttribute('aria-label','Hear '+r.n);sb.title='Hear '+r.n;
       sb.addEventListener('click',e=>{e.stopPropagation();sampleReader(v,sb)});c.appendChild(sb);
@@ -1579,7 +1587,7 @@ function renderReaders(){
     const pick=()=>{
       $('voiceSel').value=v;$('voiceCustomWrap').hidden=!custom;renderReaders();
       if(custom){$('voiceCustom').focus();return}
-      settings.voice=v;saveSettings();vmsg(r.n+' reads from now on.','ok');
+      settings.voice=v;saveSettings();ballColors();vmsg(r.n+' reads from now on.','ok');
     };
     c.addEventListener('click',pick);
     c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}});
@@ -1711,12 +1719,27 @@ function setImm(on){
   if(on&&!settings.ballTip&&view==='reader'){settings.ballTip=true;saveSettings();ballTip(tapAction()==='play'?'Tap to play or pause. Hold for more.':tapAction()==='menu'?'Tap the ball for controls. Drag it to move it.':'Hold the ball for more. Drag it to move it.')}
   if(view==='reader'&&P.segs.length)progress();
 }
+function ballColors(){const e=$('ballSph');if(e)e.innerHTML=sphereHtml(readerColors())}
+/* The sphere moves with the voice: a small swell at each word start that fades out, still in pauses.
+   Driven by the word timings we already have, so the audio itself is never rerouted. */
+function ballPulse(){
+  const e=$('ballSph'),b=$('ball');if(!e||b.hidden)return;
+  const c=e.firstChild&&e.firstChild.firstChild;
+  if(reduced||!P.playing||SH.waiting){e.style.transform='';if(c)c.style.transform='';return}
+  const seg=P.segs[P.loaded];let v=0;
+  if(seg&&seg.words&&P.loaded===P.i){const now=audio.currentTime*1000,k=wordAt(seg.words,now);
+    if(k>=0){const dt=now-seg.words[k].ms,nx=seg.words[k+1];if(dt<700&&!(nx&&now>nx.ms))v=Math.exp(-dt/220)}}
+  const t=performance.now()/1000;
+  e.style.transform='scale('+(1+v*0.06).toFixed(3)+')';
+  if(c)c.style.transform='rotate('+((t*30)%360).toFixed(1)+'deg) scale('+(1+v*0.14).toFixed(3)+')';
+}
 function ballSync(){
   if(!BALL)return;
   const b=$('ball'),vis=ballVisible();
   b.hidden=!vis;
   if(!vis){closeFan();$('ballTurn').hidden=true;b.classList.remove('tuck');return}
   b.style.setProperty('--bs',String(settings.ball.size||1));
+  if(!$('ballSph').firstChild)ballColors();
   ballPlace();ballPaint();armTuck();
 }
 function barTop(){const bar=$('bar');return bar.hidden?innerHeight:bar.getBoundingClientRect().top}
