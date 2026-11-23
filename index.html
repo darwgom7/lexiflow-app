@@ -573,7 +573,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.15.0';
+const VERSION='2.15.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2087,14 +2087,30 @@ $('fileIn').addEventListener('change',e=>{loadFile(e.target.files[0]);e.target.v
 ['dragleave','drop'].forEach(n=>$('editor').addEventListener(n,()=>$('editor').classList.remove('drop')));
 $('editor').addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files[0];if(f){e.preventDefault();loadFile(f)}});
 /* Shared from another app (installed app on Android): LexiFlow opens with ?title=&text=&url= */
+/* Apps often share a promo line, emojis, a credit and a link around the text. Keep the text. */
+function cleanShared(raw){
+  let title='';
+  const promo=/^(look (at )?what i found|check (this|it) out|i found (this|it)|found (this|it) on|shared (from|via|with)|sent (from|via)|read (it|this|more) on|via\b|download\b|get the app)/i;
+  let lines=raw.replace(/\r\n?/g,'\n').split('\n').map(l=>l.replace(/https?:\/\/\S+/g,'').trimEnd());
+  lines=lines.filter(l=>{const t=l.trim();if(!t)return true;if(promo.test(t))return false;if(!/[\p{L}\p{N}]/u.test(t))return false;return true});
+  let text=lines.join('\n').trim();
+  /* “Quote ~ Authors” — Book  → the quote, and the book as title */
+  const m=text.match(/^([\s\S]*?)\s*[—–]\s*([^\n—–]{2,70})$/);
+  if(m&&/[”“"»]\s*$/.test(m[1])){title=m[2].trim();text=m[1].trim()}
+  text=text.replace(/\s+~\s+[^~\n]{2,300}?([”“"»])\s*$/,'$1');
+  text=text.replace(/^[“"«]\s*([\s\S]*?)\s*[”“"»]$/,'$1').trim();
+  text=text.replace(/\n{3,}/g,'\n\n');
+  return {text,title};
+}
 function takeShare(){
   const q=new URLSearchParams(location.search);
   if(!q.has('text')&&!q.has('url')&&!q.has('title'))return false;
   const title=(q.get('title')||'').trim(),url=(q.get('url')||'').trim();let text=(q.get('text')||'').trim();
   history.replaceState(null,'',location.pathname);
   if(url&&text.endsWith(url))text=text.slice(0,-url.length).trim();
+  const c=cleanShared(text);text=c.text;
   newReading();
-  if(text){insertText(text);if(title&&title.length<=120)$('docTitle').value=title}
+  if(text){insertText(text);const t=(title&&title.length<=120)?title:c.title;if(t)$('docTitle').value=t}
   else{$('docTitle').value=title;$('editErr').textContent=url?'Only a link came in. Open the page, select the text you want and share that, or paste it here.':'Nothing to read came in. Paste the text here.'}
   return true;
 }
