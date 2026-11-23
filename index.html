@@ -591,7 +591,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.16.0';
+const VERSION='2.16.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1075,6 +1075,8 @@ function saveReading(){
   d.sub=$('docSub').value.trim();
   const col=$('docCol').value.trim().slice(0,40);if(col)d.col=col;else delete d.col;
   editingId=null;saveDocs();openDoc(d.id);
+  /* Just saved: open with the bars, so the title, progress and the pencil are in sight. */
+  if(settings.imm)setImm(false);
 }
 
 /* ---------- reader ---------- */
@@ -2193,12 +2195,14 @@ function isChrome(l){
   const t=l.t,n=normLine(t);
   if(!/\p{L}/u.test(t)&&!/^\d{3,}$/.test(t))return true;                     /* 12:45, 85%, ••• , 3/12 */
   if(l.y1<.055)return true;                                                     /* phone status bar */
+  if(t.replace(/[^\p{L}]/gu,'').length<=2&&!/^\d+[.)]?$/.test(t))return true;      /* icons read as letters: C>, @, ®) */
   if(/^\d{1,2}:\d{2}(\s?[ap]\.?m\.?)?$/i.test(t))return true;
   if(/^(\d+\s*(%|min(ute)?s?( left)?|h|sec)|\d+\s*(of|\/)\s*\d+|(page|key point|insight|part|step)\s+\d+(\s*(of|\/)\s*\d+)?)$/i.test(n))return true;
   if(/^(\d+\s*)?min(ute)?s?\s+(left|read|listen)$/i.test(n))return true;
   const w=n.split(' ');
   if(w.length<=3&&w.every(x=>OCR_UI.has(x)))return true;
   if(l.y0>.93&&w.length<=4)return true;                                         /* bottom nav */
+  if(l.y0>.88&&w.length<=6&&!endsSentence(t))return true;                       /* mini player at the bottom */
   return false;
 }
 const med=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y);return s[s.length>>1]};
@@ -2214,16 +2218,33 @@ function ocrText(pages){
   /* 2) Typical line height and left edge, from all pages. */
   const all=pages.flat();if(!all.length)return'';
   const h=med(all.map(l=>l.y1-l.y0))||.02,left=med(all.map(l=>l.x0)),right=med(all.map(l=>l.x1).sort((a,b)=>b-a).slice(0,Math.max(1,all.length>>2)));
-  const paras=[];let cur='';
-  const flush=()=>{if(cur.trim())paras.push(cur.trim());cur=''};
+  /* 3) Scrolled screenshots overlap. A line cut by the edge or hidden behind a player reads a bit
+     differently, so lines match when they are nearly the same. */
+  const bg=x=>{const m=new Map();for(let i=0;i<x.length-1;i++){const g=x.slice(i,i+2);m.set(g,(m.get(g)||0)+1)}return m};
+  const same=(x,y)=>{if(x===y)return true;if(x.length<4||y.length<4)return false;const A=bg(x),B=bg(y);let c=0;for(const [g,n] of A)c+=Math.min(n,B.get(g)||0);return 2*c/(x.length+y.length-2)>=.8};
+  const starts=pages.map(()=>0);
+  for(let pi=1;pi<pages.length;pi++){
+    const A=pages[pi-1],B=pages[pi];if(!A.length||!B.length)continue;
+    const a=A.map(l=>normLine(l.t)),b=B.map(l=>normLine(l.t));let best=null;
+    for(let i=0;i<Math.min(3,b.length)&&!best;i++){
+      if(b[i].split(' ').length<3)continue;
+      for(let j=Math.max(0,a.length-25);j<a.length;j++){
+        if(!same(a[j],b[i]))continue;
+        let k=1;while(j+k<a.length&&i+k<b.length&&same(a[j+k],b[i+k]))k++;
+        const tail=a.length-(j+k);
+        if(tail===0||(tail<=2&&(k>=2||b[i].split(' ').length>=5))){best={i,k,tail};break}
+      }
+    }
+    if(best){starts[pi]=best.i+best.k;if(best.tail)A.splice(A.length-best.tail,best.tail)}
+  }
+  const paras=[];let cur='',big=false,nl=0;
+  /* A heading: bigger letters, or one short line on its own with no full stop. */
+  const flush=()=>{const t=cur.trim();if(t){const w=t.split(' ').length;
+    const head=big||(nl===1&&w<=8&&t.length<70&&!/[.!?…,;:"”’»]$/.test(t)&&/^[\p{Lu}\d]/u.test(t));
+    paras.push(head?'# '+t:t)}cur='';big=false;nl=0};
   let prevPageEnd=null;
   pages.forEach((ls,pi)=>{
-    /* 3) Scrolled screenshots overlap: skip the lines already read on the previous page. */
-    let start=0;
-    if(pi>0&&pages[pi-1].length){
-      const a=pages[pi-1].map(l=>normLine(l.t)),b=ls.map(l=>normLine(l.t));
-      for(let k=Math.min(a.length,b.length);k>0;k--){let ok=true;for(let j=0;j<k;j++)if(a[a.length-k+j]!==b[j]){ok=false;break}if(ok){start=k;break}}
-    }
+    const start=starts[pi];
     let prev=start?ls[start-1]:null;
     for(let i=start;i<ls.length;i++){
       const l=ls[i];let brk;
@@ -2231,8 +2252,9 @@ function ocrText(pages){
       else if(prev){
         const lh=l.y1-l.y0,ph=prev.y1-prev.y0;
         const gap=l.y0-prev.y1,charW=(prev.x1-prev.x0)/Math.max(prev.t.length,1);
-        brk=gap>.9*h||lh>1.3*h||ph>1.3*h||l.y0<prev.y0
+        brk=gap>.9*Math.max(h,Math.min(lh,ph))||Math.abs(lh-ph)>.15*Math.max(lh,ph)||l.y0<prev.y0
           ||(endsSentence(prev.t)&&prev.x1<right-4*charW)
+          ||(prev.x1<right-8*charW&&/^[\p{Lu}\d“"]/u.test(l.t))   /* a line that stops well short ends its paragraph */
           ||(endsSentence(prev.t)&&l.x0>left+1.2*h)
           ||/^([•·▪◦●\-–—*]|\d+[.)])\s/.test(l.t);
       }else{
@@ -2240,6 +2262,7 @@ function ocrText(pages){
         brk=endsSentence(prevPageEnd||'.')&&!/^\p{Ll}/u.test(l.t);
       }
       if(brk){flush();cur=l.t}else cur=joinLine(cur,l.t);
+      nl++;if(l.y1-l.y0>1.18*h)big=true;
       prev=l;
     }
     prevPageEnd=cur||prevPageEnd;
@@ -2262,7 +2285,10 @@ async function readShots(files){
       hint.textContent=files.length>1?'Reading '+(i+1)+' of '+files.length+'…':'Reading the screenshot…';
       try{pages.push(ocrPage(await visionRead(files[i])))}catch(e){err=e.message;break}
     }
-    const text=ocrText(pages);
+    let text=ocrText(pages);
+    /* The first heading becomes the title when the reading has none yet. */
+    const m=text.match(/^# (.+)(\n\n|$)/);
+    if(m&&!$('docTitle').value.trim()&&!$('docText').value.trim()){$('docTitle').value=m[1];text=text.slice(m[0].length)}
     if(text)insertText(text);
     if(err)$('editErr').textContent=(pages.length?'Read '+pages.length+' of '+files.length+'. ':'')+err;
     else if(!text)$('editErr').textContent='No text found in '+(files.length>1?'those screenshots.':'that screenshot.');
