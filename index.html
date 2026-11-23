@@ -191,17 +191,17 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 
 /* immersive mode: bars hidden, the floating ball is the remote */
 body.imm.reading .readhead,body.imm.reading .top{display:none}
-body.imm.reading main{padding-top:max(60px,calc(env(safe-area-inset-top) + 48px))}
-#immExit{display:none;position:fixed;z-index:9;top:max(10px,env(safe-area-inset-top));right:10px;color:var(--muted)}
-body.imm.reading #immExit{display:inline-flex}
-#immExit{transition:opacity .4s ease}
-/* Listening, not navigating: the way out steps back but can still be tapped. */
-body.imm.reading.playing #immExit{opacity:.25}
+body.imm.reading main{padding-top:max(22px,env(safe-area-inset-top))}
 body.imm.reading .bar{background:var(--bg);border-top:0;padding-top:6px}
 body.imm.reading .bar .ctl,body.imm.reading .bar #note{display:none}
 body.imm.reading .bar .cccard{background:var(--card)}
 .foot{display:none;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding:0 4px}
-body.imm.reading.foot-on .foot{display:flex}
+body.imm.reading .foot{display:flex;align-items:center}
+/* The way out of immersive mode lives at the end of the bottom line, where text never runs over it. */
+body.imm.reading:not(.foot-on) :is(#footLeft,#footPart,#footPct){visibility:hidden}
+.fend{display:inline-flex;align-items:center;gap:8px}
+#immExit{width:34px;height:30px;min-width:0;min-height:0;margin:-4px -6px -4px 0;color:var(--muted);flex:none}
+body.focuson #immExit{visibility:hidden}
 .ball{position:fixed;z-index:16;left:0;top:0;width:calc(56px * var(--bs,1));height:calc(56px * var(--bs,1));padding:0;border:0;background:none;border-radius:50%;touch-action:none;-webkit-user-select:none;user-select:none;filter:drop-shadow(0 4px 12px rgba(0,0,0,.22));transition:left .25s cubic-bezier(.2,.8,.2,1),top .25s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
 .ball[hidden]{display:none}
 .ball.drag{transition:none}
@@ -545,11 +545,10 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
       <button class="speedchip" id="rate" type="button" aria-label="Speed and reading options"></button>
     </div>
     <p class="status" id="note" role="status"></p>
-    <div class="foot" id="foot"><span id="footLeft"></span><span id="footPart"></span><span id="footPct"></span></div>
+    <div class="foot" id="foot"><span id="footLeft"></span><span id="footPart"></span><span class="fend"><span id="footPct"></span><button type="button" class="iconbtn" id="immExit" aria-label="Exit immersive mode" title="Exit immersive mode (H)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg></button></span></div>
   </div>
 </div>
 
-<button type="button" class="iconbtn" id="immExit" aria-label="Exit immersive mode" title="Exit immersive mode (H)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg></button>
 <div class="focus" id="focus" hidden>
   <button type="button" class="iconbtn" id="focusExit" aria-label="Exit focus mode" title="Exit focus mode"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg></button>
   <div class="fin">
@@ -597,7 +596,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.16.3';
+const VERSION='2.16.4';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
