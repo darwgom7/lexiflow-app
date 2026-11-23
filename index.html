@@ -194,6 +194,9 @@ body.imm.reading .readhead,body.imm.reading .top{display:none}
 body.imm.reading main{padding-top:max(60px,calc(env(safe-area-inset-top) + 48px))}
 #immExit{display:none;position:fixed;z-index:9;top:max(10px,env(safe-area-inset-top));right:10px;color:var(--muted)}
 body.imm.reading #immExit{display:inline-flex}
+#immExit{transition:opacity .4s ease}
+/* Listening, not navigating: the way out steps back but can still be tapped. */
+body.imm.reading.playing #immExit{opacity:.25}
 body.imm.reading .bar{background:var(--bg);border-top:0;padding-top:6px}
 body.imm.reading .bar .ctl,body.imm.reading .bar #note{display:none}
 body.imm.reading .bar .cccard{background:var(--card)}
@@ -594,7 +597,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.16.2';
+const VERSION='2.16.3';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -799,7 +802,8 @@ function applyTheme(){
   const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute('content',sc.bg);
   r.style.setProperty('--hh',String(settings.color==='auto'?SEED_HUE[settings.seed]:COLORS[settings.color][1]));
   const reading=document.body.classList.contains('reading');
-  document.body.className=(reading?'reading ':'')+'hl-'+(settings.hl||'both')+(settings.fade?' fade':'')+(settings.cc?' ccon':'')+(settings.cc&&settings.ccMode==='focus'?' focuson':'')+(settings.imm?' imm':'')+(settings.ball.foot?' foot-on':'');
+  const playing=document.body.classList.contains('playing');
+  document.body.className=(playing?'playing ':'')+(reading?'reading ':'')+'hl-'+(settings.hl||'both')+(settings.fade?' fade':'')+(settings.cc?' ccon':'')+(settings.cc&&settings.ccMode==='focus'?' focuson':'')+(settings.imm?' imm':'')+(settings.ball.foot?' foot-on':'');
   if(settings.theme==='light'||settings.theme==='dark'||settings.theme==='sepia')r.setAttribute('data-theme',settings.theme);else r.removeAttribute('data-theme');
   r.style.setProperty('--fs',String(settings.fs||1));
 }
@@ -1289,7 +1293,7 @@ function tick(){
 function note(msg,bad){const n=$('note');n.textContent=msg||'';n.className='status'+(bad?' bad':'')}
 const I_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
 const I_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>';
-function updateBtn(){const b=$('playBtn');$('playIc').innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',(P.playing?'Pause':'Play')+'. Hold to change reader');if(P.playing)playTip();ballPaint();ballPulse()}
+function updateBtn(){document.body.classList.toggle('playing',!!P.playing);const b=$('playBtn');$('playIc').innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',(P.playing?'Pause':'Play')+'. Hold to change reader');if(P.playing)playTip();ballPaint();ballPulse()}
 function savePos(){
   const d=P.doc;if(!d)return;
   d.bi=P.i;d.ms=P.loaded===P.i?Math.round(audio.currentTime*1000):(d.ms||0);
