@@ -573,7 +573,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.15.3';
+const VERSION='2.15.4';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2106,7 +2106,7 @@ function cleanShared(raw){
 function takeShare(){
   const q=new URLSearchParams(location.search);
   if(!q.has('text')&&!q.has('url')&&!q.has('title'))return false;
-  const title=(q.get('title')||'').trim(),url=(q.get('url')||'').trim();let text=(q.get('text')||'').trim();
+  let title=(q.get('title')||'').trim();const url=(q.get('url')||'').trim();let text=(q.get('text')||'').trim();
   history.replaceState(null,'',location.pathname);
   if(url&&text.endsWith(url))text=text.slice(0,-url.length).trim();
   const c=cleanShared(text);text=c.text;
