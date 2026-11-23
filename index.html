@@ -328,6 +328,9 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 .ball-l .fb.cmpfb .nm,.ball-l .fb.rdfb .nm{right:auto;left:100%;margin:0 0 0 8px}
 .fb.rdfb .fl{position:absolute;right:-4px;bottom:-2px;width:16px;height:11px;border-radius:2px;box-shadow:0 0 0 1.5px #fff}
 .fb.cmpfb .nm,.fb.rdfb .nm{position:absolute;top:50%;transform:translateY(-50%);right:100%;margin-right:8px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6);white-space:nowrap}
+.srcrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:-4px}
+.srcrow .ghost{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px}
+#editor.drop textarea{outline:2px dashed var(--accent);outline-offset:4px}
 </style>
 </head>
 <body>
@@ -354,6 +357,12 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
     <label class="field" for="docText">Text
       <textarea id="docText" placeholder="Paste something you are reading. A blank line starts a new paragraph."></textarea>
     </label>
+    <div class="srcrow">
+      <button class="ghost" id="pasteBtn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/></svg>Paste</button>
+      <button class="ghost" id="fileBtn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>Open file</button>
+      <input id="fileIn" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" hidden>
+      <span class="muted small" id="srcHint">.txt or .md</span>
+    </div>
     <p class="msg bad" id="editErr" role="alert"></p>
     <div><button class="primary" id="saveDoc" type="button">Save and read</button></div>
   </section>
@@ -564,7 +573,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.14.4';
+const VERSION='2.15.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2041,6 +2050,54 @@ $('docText').addEventListener('paste',e=>{
   ta.value=ta.value.slice(0,a)+text+ta.value.slice(z);
   ta.selectionStart=ta.selectionEnd=a+text.length;
 });
+
+/* ---------- getting text in: paste button, files, and sharing from other apps ---------- */
+function insertText(text){
+  const ta=$('docText');text=String(text||'').replace(/\r\n?/g,'\n');if(!text.trim())return;
+  const a=ta.selectionStart??ta.value.length,z=ta.selectionEnd??a;
+  const pre=ta.value.slice(0,a),sep=pre&&!/\n\n$/.test(pre)?(pre.endsWith('\n')?'\n':'\n\n'):'';
+  ta.value=pre+sep+text+ta.value.slice(z);ta.selectionStart=ta.selectionEnd=(pre+sep+text).length;
+  $('editErr').textContent='';ta.focus();
+}
+$('pasteBtn').addEventListener('click',async()=>{
+  try{
+    if(navigator.clipboard&&navigator.clipboard.read){
+      const items=await navigator.clipboard.read();
+      for(const it of items){
+        if(it.types.includes('text/html')){const h=await (await it.getType('text/html')).text();const t=/<(h[1-6]|li|p|tr)[\s>]/i.test(h)?htmlToText(h):'';if(t){insertText(t);return}}
+        if(it.types.includes('text/plain')){insertText(await (await it.getType('text/plain')).text());return}
+      }
+    }
+    insertText(await navigator.clipboard.readText());
+  }catch(e){$('editErr').textContent='This browser did not let LexiFlow read the clipboard. Long-press the box and choose Paste.'}
+});
+const titleFromName=n=>n.replace(/\.(txt|md|markdown)$/i,'').replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
+async function loadFile(f){
+  if(!f)return;
+  if(f.size>2e6){$('editErr').textContent='That file is too big. Try one under 2 MB.';return}
+  if(!/\.(txt|md|markdown)$/i.test(f.name)&&!/^text\//.test(f.type||'')){$('editErr').textContent='LexiFlow opens .txt and .md files for now.';return}
+  const t=await f.text();
+  const first=(t.trim().split('\n')[0]||'').trim();
+  if(!$('docTitle').value.trim()&&!/^#\s/.test(first)&&first.length>80)$('docTitle').value=titleFromName(f.name);
+  insertText(t);
+}
+$('fileBtn').addEventListener('click',()=>$('fileIn').click());
+$('fileIn').addEventListener('change',e=>{loadFile(e.target.files[0]);e.target.value=''});
+['dragenter','dragover'].forEach(n=>$('editor').addEventListener(n,e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){e.preventDefault();$('editor').classList.add('drop')}}));
+['dragleave','drop'].forEach(n=>$('editor').addEventListener(n,()=>$('editor').classList.remove('drop')));
+$('editor').addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files[0];if(f){e.preventDefault();loadFile(f)}});
+/* Shared from another app (installed app on Android): LexiFlow opens with ?title=&text=&url= */
+function takeShare(){
+  const q=new URLSearchParams(location.search);
+  if(!q.has('text')&&!q.has('url')&&!q.has('title'))return false;
+  const title=(q.get('title')||'').trim(),url=(q.get('url')||'').trim();let text=(q.get('text')||'').trim();
+  history.replaceState(null,'',location.pathname);
+  if(url&&text.endsWith(url))text=text.slice(0,-url.length).trim();
+  newReading();
+  if(text){insertText(text);if(title&&title.length<=120)$('docTitle').value=title}
+  else{$('docTitle').value=title;$('editErr').textContent=url?'Only a link came in. Open the page, select the text you want and share that, or paste it here.':'Nothing to read came in. Paste the text here.'}
+  return true;
+}
 $('back').addEventListener('click',()=>{renderHome();show('home')});
 $('editCur').addEventListener('click',()=>{if(P.doc)editReading(P.doc.id)});
 $('offlineBtn').addEventListener('click',saveOffline);
@@ -2188,7 +2245,7 @@ $('version').textContent='LexiFlow '+VERSION;
 window.addEventListener('online',()=>{if(view==='reader')note('')});
 window.addEventListener('offline',()=>{if(view==='reader')note('You are offline. Saved parts still play.')});
 
-renderHome();show('home');
+renderHome();show('home');takeShare();
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
