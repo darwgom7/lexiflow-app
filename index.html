@@ -573,7 +573,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.15.2';
+const VERSION='2.15.3';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2110,6 +2110,9 @@ function takeShare(){
   history.replaceState(null,'',location.pathname);
   if(url&&text.endsWith(url))text=text.slice(0,-url.length).trim();
   const c=cleanShared(text);text=c.text;
+  /* Some apps put the link or the whole promo in the title: keep it only if it reads like a title. */
+  title=title.replace(/https?:\/\/\S+/g,'').trim();
+  if(title&&(cleanShared(title).text!==title||/[?&=]/.test(title)||title.length>120))title='';
   newReading();
   if(text){insertText(text);const t=(title&&title.length<=120)?title:c.title;if(t)$('docTitle').value=t}
   else{$('docTitle').value=title;$('editErr').textContent=url?'Only a link came in. Open the page, select the text you want and share that, or paste it here.':'Nothing to read came in. Paste the text here.'}
