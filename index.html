@@ -573,7 +573,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.15.1';
+const VERSION='2.15.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2090,9 +2090,10 @@ $('editor').addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.f
 /* Apps often share a promo line, emojis, a credit and a link around the text. Keep the text. */
 function cleanShared(raw){
   let title='';
-  const promo=/^(look (at )?what i found|check (this|it) out|i found (this|it)|found (this|it) on|shared (from|via|with)|sent (from|via)|read (it|this|more) on|via\b|download\b|get the app)/i;
+  const promo=/^(look (at )?what i found|check (this|it) out|i found (this|it)|found (this|it) on|shared (from|via|with)|sent (from|via)|read (it|this|more) on|via\b|download\b|get the app|here'?s an? .{0,40}(pass|trial|gift|invite|discount)|\d+[- ]day free|free (guest )?pass|free trial|join me on|use (my )?code|try it (for )?free)/i;
+  const promoAny=/(guest pass|free trial|\d+[- ]day free|on the \w+( \w+)? app!?$)/i;
   let lines=raw.replace(/\r\n?/g,'\n').split('\n').map(l=>l.replace(/https?:\/\/\S+/g,'').trimEnd());
-  lines=lines.filter(l=>{const t=l.trim();if(!t)return true;if(promo.test(t))return false;if(!/[\p{L}\p{N}]/u.test(t))return false;return true});
+  lines=lines.filter(l=>{const t=l.trim();if(!t)return true;if(promo.test(t)||promoAny.test(t))return false;if(!/[\p{L}\p{N}]/u.test(t))return false;return true});
   let text=lines.join('\n').trim();
   /* “Quote ~ Authors” — Book  → the quote, and the book as title */
   const m=text.match(/^([\s\S]*?)\s*[—–]\s*([^\n—–]{2,70})$/);
