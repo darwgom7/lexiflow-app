@@ -324,10 +324,10 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 .playtip[hidden]{display:none}
 .fb.rdfb{padding:0;border:2px solid #fff;overflow:visible}
 .fb.rdfb .sph{border-radius:50%}
-.ball-l .fb.cmpfb{overflow:visible}
-.fb.cmpfb .nm,.fb.rdfb .nm{right:auto;left:100%;margin:0 0 0 8px}
+.fb.cmpfb{overflow:visible}
+.ball-l .fb.cmpfb .nm,.ball-l .fb.rdfb .nm{right:auto;left:100%;margin:0 0 0 8px}
 .fb.rdfb .fl{position:absolute;right:-4px;bottom:-2px;width:16px;height:11px;border-radius:2px;box-shadow:0 0 0 1.5px #fff}
-.fb.rdfb .nm{position:absolute;top:50%;transform:translateY(-50%);right:100%;margin-right:8px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6);white-space:nowrap}
+.fb.cmpfb .nm,.fb.rdfb .nm{position:absolute;top:50%;transform:translateY(-50%);right:100%;margin-right:8px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -564,7 +564,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.14.2';
+const VERSION='2.14.3';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
