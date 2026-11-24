@@ -222,6 +222,13 @@ body.focuson #immExit{visibility:hidden}
 .ballfan.turning .fb{transition:none!important}
 .fb{position:absolute;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--text);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transform:translate(0,0) scale(.4);transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .16s ease}
 .fb svg{width:22px;height:22px}
+/* The basics hug the ball in immersive mode: shown while paused, fade out a few seconds into playing. */
+.bbasics{position:fixed;inset:0;z-index:16;pointer-events:none}
+.bb{position:absolute;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--text);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 3px 10px rgba(0,0,0,.14);opacity:0;transform:scale(.6);pointer-events:none;transition:opacity .25s ease,transform .25s cubic-bezier(.2,.8,.2,1)}
+.bbasics.on .bb{opacity:1;transform:scale(1);pointer-events:auto}
+.bb svg{width:20px;height:20px}
+.bb .bt{font-weight:800;font-size:13px;letter-spacing:.04em}
+.bb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
 .fb .bt{font-weight:800;font-size:14px;letter-spacing:.04em}
 .fb[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
 .ballturn{position:fixed;z-index:16;height:36px;padding:0 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.14);color:color-mix(in srgb,var(--accent) 75%,var(--text));font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px;white-space:nowrap;transform:translateY(-50%);pointer-events:none}
@@ -562,6 +569,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <div class="playtip" id="playTip" hidden>Hold to change reader</div>
 <div class="ballfan" id="ballFan" hidden></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lxGrain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></svg>
+<div class="bbasics" id="ballBasics" aria-label="Basic controls"></div>
 <button class="ball sphere" id="ball" type="button" aria-label="Controls" aria-expanded="false" hidden><span class="bsph" id="ballSph"></span><svg class="bsv" viewBox="0 0 56 56" aria-hidden="true"><circle class="bbg" cx="28" cy="28" r="27"/><circle class="btrack" cx="28" cy="28" r="23"/><circle class="bring" id="ballRing" cx="28" cy="28" r="23"/></svg><span class="bin" id="ballIn"></span></button>
 <div class="ballturn" id="ballTurn" hidden></div>
 <button class="jump" id="jump" type="button" hidden></button>
@@ -596,7 +604,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.16.4';
+const VERSION='2.17.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1292,7 +1300,7 @@ function tick(){
 function note(msg,bad){const n=$('note');n.textContent=msg||'';n.className='status'+(bad?' bad':'')}
 const I_PLAY='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
 const I_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>';
-function updateBtn(){document.body.classList.toggle('playing',!!P.playing);const b=$('playBtn');$('playIc').innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',(P.playing?'Pause':'Play')+'. Hold to change reader');if(P.playing)playTip();ballPaint();ballPulse()}
+function updateBtn(){document.body.classList.toggle('playing',!!P.playing);if(BAS){if(P.playing&&!BAS.was)BAS.until=Date.now()+3000;BAS.was=!!P.playing;basicsSync()}const b=$('playBtn');$('playIc').innerHTML=P.playing?I_PAUSE:I_PLAY;b.setAttribute('aria-label',(P.playing?'Pause':'Play')+'. Hold to change reader');if(P.playing)playTip();ballPaint();ballPulse()}
 function savePos(){
   const d=P.doc;if(!d)return;
   d.bi=P.i;d.ms=P.loaded===P.i?Math.round(audio.currentTime*1000):(d.ms||0);
@@ -1817,10 +1825,10 @@ function ballSync(){
   if(!BALL)return;
   const b=$('ball'),vis=ballVisible();
   b.hidden=!vis;
-  if(!vis){closeFan();$('ballTurn').hidden=true;b.classList.remove('tuck');return}
+  if(!vis){closeFan();$('ballTurn').hidden=true;b.classList.remove('tuck');basicsSync();return}
   b.style.setProperty('--bs',String(settings.ball.size||1));
   if(!$('ballSph').firstChild)ballColors();
-  ballPlace();ballPaint();armTuck();
+  ballPlace();ballPaint();armTuck();basicsSync();
 }
 function barTop(){const bar=$('bar');return bar.hidden?innerHeight:bar.getBoundingClientRect().top}
 function ballPlace(){
@@ -1830,14 +1838,14 @@ function ballPlace(){
   const tuck=b.classList.contains('tuck');
   const x=B.side==='l'?(tuck?-s*0.62:8):(tuck?W-s*0.38:W-s-8);
   b.style.left=Math.round(x)+'px';b.style.top=Math.round(cy-s/2)+'px';
-  placeTurn();
+  placeTurn();if(BAS&&$('ballBasics').classList.contains('on'))basicsPlace();
 }
 function armTuck(){
   clearTimeout(BALL.tuckT);
   if(!settings.ball.tuck||fanOpen())return;
-  BALL.tuckT=setTimeout(()=>{if(!fanOpen()&&!$('ball').hidden){$('ball').classList.add('tuck');ballPlace()}},5000);
+  BALL.tuckT=setTimeout(()=>{if(!fanOpen()&&!$('ball').hidden&&!$('ballBasics').classList.contains('on')){$('ball').classList.add('tuck');ballPlace();basicsSync()}},5000);
 }
-function untuck(){const b=$('ball');if(b.classList.contains('tuck')){b.classList.remove('tuck');ballPlace();return true}return false}
+function untuck(){const b=$('ball');if(b.classList.contains('tuck')){b.classList.remove('tuck');ballPlace();basicsSync();return true}return false}
 function ballPaint(){
   if(!BALL)return;
   const b=$('ball');if(b.hidden)return;
@@ -1869,7 +1877,7 @@ function placeTurn(){
 function fanList(){
   const B=settings.ball,cap=innerWidth<600?6:9;
   /* Leaving immersive mode lives in the top right corner now, not in the fan. */
-  let l=(B.btns||[]).filter(k=>BALL_ACTS[k]&&k!=='bars');
+  let l=(B.btns||[]).filter(k=>BALL_ACTS[k]&&k!=='bars'&&!BASICS.includes(k));
   BALL.more=null; /* more than fit: the fan turns like a dial instead of hiding them */
   return l;
 }
@@ -1917,7 +1925,7 @@ function openFan(list,gap){
     fan.appendChild(btn);
   });
   fan.classList.toggle('ball-l',settings.ball.side==='l');
-  BALL.fan=list;fan.hidden=false;b.classList.add('open');b.setAttribute('aria-expanded','true');$('ballTurn').hidden=true;ballPaint();
+  BALL.fan=list;fan.hidden=false;b.classList.add('open');b.setAttribute('aria-expanded','true');$('ballTurn').hidden=true;ballPaint();basicsSync();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     fan.classList.add('open');
     fan.querySelectorAll('.fb').forEach((x,j)=>{x.style.transitionDelay=(reduced?0:j*18)+'ms';x.style.opacity=x.dataset.op;x.style.transform='translate('+x.dataset.dx+'px,'+x.dataset.dy+'px) scale('+x.dataset.sc+')';x.style.pointerEvents=+x.dataset.op>0.6?'':'none'});
@@ -1979,12 +1987,12 @@ function closeFan(){
   fan.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');
   fan.querySelectorAll('.fb').forEach(x=>{x.style.transitionDelay='0ms';x.style.opacity='0';x.style.transform='translate(0,0) scale(.4)'});
   setTimeout(()=>{if(!BALL.fan){fan.hidden=true;fan.textContent=''}},reduced?0:180);
-  ballPaint();armTuck();
+  ballPaint();armTuck();basicsSync();
 }
 function ballDo(a){
   if(a==='menu'){fanOpen()?closeFan():openFan();return}
   if(a==='none'||!BALL_ACTS[a])return;
-  BALL_ACTS[a].f();ballPaint();armTuck();
+  BALL_ACTS[a].f();ballPaint();armTuck();basicsSync();
 }
 $('ballFan').addEventListener('click',closeFan);
 (function(){
@@ -2000,7 +2008,7 @@ $('ballFan').addEventListener('click',closeFan);
   b.addEventListener('pointermove',e=>{
     const d=BALL.drag;if(!d)return;
     const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
-    if(!d.moved&&Math.hypot(dx,dy)>8){d.moved=true;clearTimeout(BALL.longT);closeFan();b.classList.remove('tuck');b.classList.add('drag');$('ballTurn').hidden=true}
+    if(!d.moved&&Math.hypot(dx,dy)>8){d.moved=true;clearTimeout(BALL.longT);closeFan();b.classList.remove('tuck');b.classList.add('drag');$('ballTurn').hidden=true;basicsSync()}
     if(d.moved){b.style.left=(d.l+dx)+'px';b.style.top=(d.t+dy)+'px'}
   });
   const end=(e,cancel)=>{
@@ -2008,7 +2016,7 @@ $('ballFan').addEventListener('click',closeFan);
     if(d.moved){
       const s=ballSize(),cx=b.offsetLeft+s/2,cy=b.offsetTop+s/2;
       settings.ball.side=cx<innerWidth/2?'l':'r';settings.ball.y=Math.round(cy/innerHeight*1000)/1000;saveSettings();
-      b.classList.remove('drag');ballPlace();armTuck();return;
+      b.classList.remove('drag');ballPlace();armTuck();basicsSync();return;
     }
     if(cancel||d.long){armTuck();return}
     if(d.tucked){untuck();armTuck();return}
@@ -2023,6 +2031,46 @@ $('ballFan').addEventListener('click',closeFan);
   b.addEventListener('click',e=>{if(e.detail===0)ballDo(tapAction())}); /* keyboard Enter or Space */
   b.addEventListener('contextmenu',e=>e.preventDefault());
 })();
+
+/* ---------- the basics around the ball (immersive mode) ----------
+   Previous, next, repeat and captions sit next to the ball, one tap each, no hold needed.
+   Paused: they stay. Playing: they fade out after 3 s. A tap on empty space brings them back for 3 s. */
+const BASICS=['prev','next','repeat','cc'];
+var BAS={until:0,t:0,was:false};
+function basicsBuild(){
+  const c=$('ballBasics');if(c.childElementCount)return;
+  BASICS.forEach(k=>{const a=BALL_ACTS[k],x=document.createElement('button');
+    x.type='button';x.className='bb';x.dataset.k=k;x.setAttribute('aria-label',a.l);x.title=a.l;x.innerHTML=a.i();
+    x.addEventListener('click',e=>{e.stopPropagation();a.f();basicsPeek()});c.appendChild(x)});
+}
+function basicsPaint(){$('ballBasics').querySelectorAll('.bb').forEach(x=>{const a=BALL_ACTS[x.dataset.k];if(a.on)x.setAttribute('aria-pressed',String(!!a.on()))})}
+function basicsPlace(){
+  const b=$('ball');if(b.hidden)return;
+  /* where the ball is going, not where its slide animation is right now */
+  const s=ballSize(),cx=(parseFloat(b.style.left)||b.offsetLeft)+s/2,cy=(parseFloat(b.style.top)||b.offsetTop)+s/2,R=s/2+38,left=settings.ball.side==='l';
+  /* up-left, left, down-left, down: an arc that opens toward the middle of the screen */
+  let pts=[-120,-165,150,105].map(a=>{const r=(left?180-a:a)*Math.PI/180;return[cx+R*Math.cos(r),cy+R*Math.sin(r)]});
+  const ys=pts.map(p=>p[1]),top=30,bot=Math.min(innerHeight,barTop()+60)-24;let dy=0;
+  if(Math.min(...ys)<top)dy=top-Math.min(...ys);else if(Math.max(...ys)>bot)dy=bot-Math.max(...ys);
+  $('ballBasics').querySelectorAll('.bb').forEach((x,i)=>{x.style.left=Math.round(pts[i][0])+'px';x.style.top=Math.round(pts[i][1]+dy)+'px'});
+}
+function basicsOn(){
+  const b=$('ball');
+  return view==='reader'&&!!settings.imm&&!b.hidden&&!fanOpen()&&!BALL.drag&&!b.classList.contains('tuck')&&(!P.playing||Date.now()<BAS.until);
+}
+function basicsSync(){
+  const c=$('ballBasics');if(!c)return;basicsBuild();
+  const on=basicsOn();if(on){basicsPlace();basicsPaint()}
+  c.classList.toggle('on',on);
+  clearTimeout(BAS.t);if(on&&P.playing)BAS.t=setTimeout(basicsSync,Math.max(50,BAS.until-Date.now()+20));
+}
+function basicsPeek(){BAS.until=Date.now()+3000;basicsSync()}
+/* Empty space (not a paragraph, not a control) while playing: show the basics for a moment. */
+document.addEventListener('click',e=>{
+  if(view!=='reader'||!settings.imm||!P.playing)return;
+  if(e.target.closest('.seg,button,a,input,textarea,select,label,.bar,.focus,.ballfan,.sheet,.bbasics'))return;
+  basicsPeek();
+});
 /* Phones fire resize when the address bar slides; only a real width change closes the fan. */
 let lastW=innerWidth;
 window.addEventListener('resize',()=>{const wch=innerWidth!==lastW;lastW=innerWidth;if($('ball').hidden)return;if(fanOpen()&&!wch)return;closeFan();ballPlace()});
@@ -2037,7 +2085,7 @@ function paintBallSettings(){
   });
   $('bSize').value=String(B.size||1);$('bWith').checked=!!B.withBars;$('bTuck').checked=!!B.tuck;$('bFoot').checked=!!B.foot;
   const list=$('bList');list.textContent='';
-  const sel=(B.btns||[]).filter(k=>BALL_ACTS[k]&&k!=='bars'),rest=Object.keys(BALL_ACTS).filter(k=>k!=='bars'&&!sel.includes(k));
+  const sel=(B.btns||[]).filter(k=>BALL_ACTS[k]&&k!=='bars'&&!BASICS.includes(k)),rest=Object.keys(BALL_ACTS).filter(k=>k!=='bars'&&!BASICS.includes(k)&&!sel.includes(k));
   sel.concat(rest).forEach(k=>{
     const on=sel.includes(k),idx=sel.indexOf(k),row=el('div','brow');
     const cb=document.createElement('input');cb.type='checkbox';cb.checked=on;cb.setAttribute('aria-label',BALL_ACTS[k].l);
