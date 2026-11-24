@@ -604,7 +604,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.17.0';
+const VERSION='2.17.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2050,9 +2050,15 @@ function basicsPlace(){
   const s=ballSize(),cx=(parseFloat(b.style.left)||b.offsetLeft)+s/2,cy=(parseFloat(b.style.top)||b.offsetTop)+s/2,R=s/2+38,left=settings.ball.side==='l';
   /* up-left, left, down-left, down: an arc that opens toward the middle of the screen */
   let pts=[-120,-165,150,105].map(a=>{const r=(left?180-a:a)*Math.PI/180;return[cx+R*Math.cos(r),cy+R*Math.sin(r)]});
-  const ys=pts.map(p=>p[1]),top=30,bot=Math.min(innerHeight,barTop()+60)-24;let dy=0;
-  if(Math.min(...ys)<top)dy=top-Math.min(...ys);else if(Math.max(...ys)>bot)dy=bot-Math.max(...ys);
-  $('ballBasics').querySelectorAll('.bb').forEach((x,i)=>{x.style.left=Math.round(pts[i][0])+'px';x.style.top=Math.round(pts[i][1]+dy)+'px'});
+  const f=$('foot'),fTop=f&&f.offsetParent!==null?f.getBoundingClientRect().top:innerHeight;
+  const ys=pts.map(p=>p[1]),top=26+21,bot=Math.min(innerHeight,fTop,barTop()+60)-6-21;
+  /* No room for the flower (ball near the top or the bottom): line them up beside the ball, at its height,
+     in reading order, so nothing lands on the title or the bottom line. */
+  const line=Math.min(...ys)<top||Math.max(...ys)>bot;
+  if(line){const step=50,first=s/2+12+21;
+    pts=[0,1,2,3].map(i=>left?[cx+first+i*step,cy]:[cx-first-(3-i)*step,cy])}
+  $('ballBasics').dataset.mode=line?'line':'arc';
+  $('ballBasics').querySelectorAll('.bb').forEach((x,i)=>{x.style.left=Math.round(pts[i][0])+'px';x.style.top=Math.round(pts[i][1])+'px'});
 }
 function basicsOn(){
   const b=$('ball');
