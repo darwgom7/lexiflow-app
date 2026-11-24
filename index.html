@@ -604,7 +604,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.17.1';
+const VERSION='2.17.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2051,7 +2051,7 @@ function basicsPlace(){
   /* up-left, left, down-left, down: an arc that opens toward the middle of the screen */
   let pts=[-120,-165,150,105].map(a=>{const r=(left?180-a:a)*Math.PI/180;return[cx+R*Math.cos(r),cy+R*Math.sin(r)]});
   const f=$('foot'),fTop=f&&f.offsetParent!==null?f.getBoundingClientRect().top:innerHeight;
-  const ys=pts.map(p=>p[1]),top=26+21,bot=Math.min(innerHeight,fTop,barTop()+60)-6-21;
+  const ys=pts.map(p=>p[1]),top=26+21,bot=Math.min(innerHeight,fTop,barTop())-6-21;
   /* No room for the flower (ball near the top or the bottom): line them up beside the ball, at its height,
      in reading order, so nothing lands on the title or the bottom line. */
   const line=Math.min(...ys)<top||Math.max(...ys)>bot;
@@ -2074,7 +2074,8 @@ function basicsPeek(){BAS.until=Date.now()+3000;basicsSync()}
 /* Empty space (not a paragraph, not a control) while playing: show the basics for a moment. */
 document.addEventListener('click',e=>{
   if(view!=='reader'||!settings.imm||!P.playing)return;
-  if(e.target.closest('.seg,button,a,input,textarea,select,label,.bar,.focus,.ballfan,.sheet,.bbasics'))return;
+  /* in the big subtitle view only the current sentence takes taps; the rest of it is empty space */
+  if(e.target.closest('.seg,#fCur,button,a,input,textarea,select,label,.bar,.ballfan,.sheet,.bbasics'))return;
   basicsPeek();
 });
 /* Phones fire resize when the address bar slides; only a real width change closes the fan. */
