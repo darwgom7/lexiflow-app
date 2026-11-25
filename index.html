@@ -187,6 +187,19 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 .th.sys{background:linear-gradient(90deg,#F6F6F4 50%,#111 50%);color:#8C8C8C;font-family:var(--ui);font-size:13px;font-weight:700}
 .th.light{background:#F6F6F4;color:#1C1C1C}.th.sepia{background:#F4ECD8;color:#3B3226}.th.dark{background:#111;color:#F2F2F2}
 @media (prefers-reduced-motion:reduce){.sheet,.scrim{transition:none}}
+/* New reading: one question, three doors */
+.addh{margin:2px 0 0;font-family:var(--read);font-size:22px;font-weight:600;text-align:center}
+.srcs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.src{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 8px 14px;border-radius:16px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;text-align:center;min-height:118px;justify-content:center}
+.src svg{color:var(--accent);margin-bottom:2px}
+.src b{font-size:15px}
+.src span{font-size:12px;color:var(--muted);line-height:1.3}
+.src:active{transform:scale(.98)}
+.src[disabled]{opacity:.55}
+.addtype{align-self:center}
+#addMsg:empty{display:none}
+#addMsg .linkbtn{margin-left:6px}
+
 @media (prefers-reduced-motion:reduce){*{transition:none !important;scroll-behavior:auto !important}}
 
 /* immersive mode: bars hidden, the floating ball is the remote */
@@ -573,6 +586,22 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <button class="ball sphere" id="ball" type="button" aria-label="Controls" aria-expanded="false" hidden><span class="bsph" id="ballSph"></span><svg class="bsv" viewBox="0 0 56 56" aria-hidden="true"><circle class="bbg" cx="28" cy="28" r="27"/><circle class="btrack" cx="28" cy="28" r="23"/><circle class="bring" id="ballRing" cx="28" cy="28" r="23"/></svg><span class="bin" id="ballIn"></span></button>
 <div class="ballturn" id="ballTurn" hidden></div>
 <button class="jump" id="jump" type="button" hidden></button>
+<div class="scrim" id="addScrim" hidden></div>
+<div class="sheet" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addHead" hidden>
+  <div class="in">
+    <div class="grab"></div>
+    <h2 class="addh" id="addHead">What do you want to read?</h2>
+    <div class="srcs">
+      <button class="src" id="addPaste" type="button"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M9.5 10h5M9.5 13.5h5M9.5 17h3"/></svg><b>Paste</b><span>What you copied</span></button>
+      <button class="src" id="addShots" type="button"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9.5 7h5M9.5 10.5h5M9.5 14h3"/></svg><b>Screenshots</b><span>Apps that block copying</span></button>
+      <button class="src" id="addFile" type="button"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg><b>File</b><span>.txt or .md</span></button>
+    </div>
+    <p class="msg" id="addMsg" role="status"></p>
+    <button class="linkbtn addtype" id="addType" type="button">or type it yourself</button>
+    <input id="addShotIn" type="file" accept="image/*" multiple hidden>
+    <input id="addFileIn" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" hidden>
+  </div>
+</div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Reading options" hidden>
   <div class="in">
@@ -604,7 +633,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.17.3';
+const VERSION='2.18.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1035,7 +1064,7 @@ function renderHome(){
     const b=el('button','primary','Open Settings');b.type='button';b.style.alignSelf='flex-start';b.addEventListener('click',openSettings);
     c.appendChild(b);h.appendChild(c);
   }
-  const fab=el('button','fab','+ New reading');fab.type='button';fab.addEventListener('click',newReading);
+  const fab=el('button','fab','+ New reading');fab.type='button';fab.addEventListener('click',()=>openAdd());
   if(!docs.length){
     h.appendChild(el('h1',null,'Start your first reading.'));
     h.appendChild(el('p','muted','Paste something you are reading. LexiFlow reads it aloud, highlights each word and keeps your place.'));
@@ -1072,10 +1101,12 @@ function editReading(id){
   $('docTitle').value=d.title;$('docSub').value=d.sub||'';$('docCol').value=d.col||'';fillCols();$('docText').value=d.raw;$('editErr').textContent='';show('editor');$('docText').focus();
 }
 function saveReading(){
-  const raw=$('docText').value.trim();
+  let raw=$('docText').value.trim();
   if(!raw){$('editErr').textContent='Paste or write some text first.';return}
   const auto=raw.split('\n')[0].replace(/^#+\s*/,'').slice(0,70),typed=$('docTitle').value.trim();
-  const title=typed||auto,custom=!!typed&&typed!==auto;
+  let title=typed||auto,custom=!!typed&&typed!==auto;
+  /* typed by hand with no title: same rules as every other way in */
+  if(!typed&&!editingId){const a=autoTitle(raw);title=a.title;custom=a.from!=='start';raw=a.text}
   let d=editingId?findDoc(editingId):null;
   if(d){
     const changed=d.raw!==raw;
@@ -1084,7 +1115,7 @@ function saveReading(){
     delete d.sample;
   }else{
     d={id:'d'+Date.now().toString(36),title,raw,custom,bi:0,ms:0,nb:0,updatedAt:Date.now()};
-    docs.push(d);
+    docs.push(d);if(!typed)d.custom=custom;
   }
   d.sub=$('docSub').value.trim();
   const col=$('docCol').value.trim().slice(0,40);if(col)d.col=col;else delete d.col;
@@ -2195,7 +2226,7 @@ function takeShare(){
   const shots=+q.get('shots')||0;
   if(shots){
     /* Screenshots shared from the gallery: read those, the text around them is usually promo. */
-    history.replaceState(null,'',location.pathname);newReading();takeSharedShots(shots);return true;
+    history.replaceState(null,'',location.pathname);openAdd();takeSharedShots(shots);return true;
   }
   let title=(q.get('title')||'').trim();const url=(q.get('url')||'').trim();let text=(q.get('text')||'').trim();
   history.replaceState(null,'',location.pathname);
@@ -2204,9 +2235,10 @@ function takeShare(){
   /* Some apps put the link or the whole promo in the title: keep it only if it reads like a title. */
   title=title.replace(/https?:\/\/\S+/g,'').trim();
   if(title&&(cleanShared(title).text!==title||/[?&=]/.test(title)||title.length>120))title='';
+  /* Text came in: it becomes a reading and opens, like every other way in. */
+  if(text){createReading(text,(title&&title.length<=120)?title:c.title);return true}
   newReading();
-  if(text){insertText(text);const t=(title&&title.length<=120)?title:c.title;if(t)$('docTitle').value=t}
-  else{$('docTitle').value=title;$('editErr').textContent=url?'Only a link came in. Open the page, select the text you want and share that, or paste it here.':'Nothing to read came in. Paste the text here.'}
+  {$('docTitle').value=title;$('editErr').textContent=url?'Only a link came in. Open the page, select the text you want and share that, or paste it here.':'Nothing to read came in. Paste the text here.'}
   return true;
 }
 /* ---------- screenshots: Azure AI Vision reads the text, LexiFlow cleans it ---------- */
@@ -2335,33 +2367,133 @@ function ocrText(pages){
 }
 const isImg=f=>f&&(/^image\//.test(f.type||'')||/\.(png|jpe?g|webp|bmp|gif|heic|heif)$/i.test(f.name||''));
 let shotBusy=false;
-async function readShots(files){
+async function readShots(files,to){
+  /* to 'new': read into a new reading straight from the New reading sheet; otherwise into the editor box */
+  const isNew=to==='new',say=isNew?(t=>addMsg(t)):(t=>{$('editErr').textContent=t});
   files=[...(files||[])].filter(isImg);if(!files.length||shotBusy)return;
-  if(!vision.key||!vision.endpoint){$('editErr').textContent='To read screenshots, add your Azure Vision key in Settings → Screenshots.';return}
-  if(files.length>20){$('editErr').textContent='Pick up to 20 screenshots at a time.';return}
+  if(isNew&&!ADD.open)openAdd();
+  if(!vision.key||!vision.endpoint){say('To read screenshots, add your Azure Vision key in Settings → Screenshots.');return}
+  if(files.length>20){say('Pick up to 20 screenshots at a time.');return}
+  const run=ADD.run;
   /* Screenshots of one chapter are taken in reading order. */
   files.sort((a,b)=>(a.lastModified||0)-(b.lastModified||0)||String(a.name).localeCompare(String(b.name),undefined,{numeric:true}));
-  shotBusy=true;const btn=$('shotBtn'),hint=$('srcHint'),old=hint.textContent;btn.disabled=true;$('editErr').textContent='';
+  shotBusy=true;const btn=$('shotBtn'),hint=$('srcHint'),old=hint.textContent;btn.disabled=true;say('');if(isNew)addBusy(true);
   const pages=[];let err='';
+  const progress=t=>{if(isNew)addMsg(t,true);else hint.textContent=t};
   try{
     for(let i=0;i<files.length;i++){
-      hint.textContent=files.length>1?'Reading '+(i+1)+' of '+files.length+'…':'Reading the screenshot…';
+      if(isNew&&run!==ADD.run)return;
+      progress(files.length>1?'Reading '+(i+1)+' of '+files.length+'…':'Reading the screenshot…');
       try{pages.push(ocrPage(await visionRead(files[i])))}catch(e){err=e.message;break}
     }
+    if(isNew&&run!==ADD.run)return; /* the sheet was closed: drop it */
     let text=ocrText(pages);
+    if(isNew){
+      const m=text.match(/^# (.+)(\n\n|$)/),title=m?m[1]:'';if(m)text=text.slice(m[0].length);
+      if(!text.trim()){say(err||'No text found in '+(files.length>1?'those screenshots.':'that screenshot.'));return}
+      if(!err){createReading(text,title);return}
+      /* some read, then Azure stopped: say so, and let them keep what was read */
+      addMsg('Read '+pages.length+' of '+files.length+'. '+err);
+      const k=el('button','linkbtn','Keep what was read');k.type='button';k.addEventListener('click',()=>createReading(text,title));$('addMsg').appendChild(k);
+      return;
+    }
     /* The first heading becomes the title when the reading has none yet. */
     const m=text.match(/^# (.+)(\n\n|$)/);
     if(m&&!$('docTitle').value.trim()&&!$('docText').value.trim()){$('docTitle').value=m[1];text=text.slice(m[0].length)}
     if(text)insertText(text);
     if(err)$('editErr').textContent=(pages.length?'Read '+pages.length+' of '+files.length+'. ':'')+err;
     else if(!text)$('editErr').textContent='No text found in '+(files.length>1?'those screenshots.':'that screenshot.');
-  }finally{shotBusy=false;btn.disabled=false;hint.textContent=old}
+  }finally{shotBusy=false;btn.disabled=false;hint.textContent=old;if(isNew)addBusy(false)}
 }
 $('shotBtn').addEventListener('click',()=>$('shotIn').click());
 $('shotIn').addEventListener('change',e=>{readShots(e.target.files);e.target.value=''});
 $('docText').addEventListener('paste',e=>{
   const fs=[...((e.clipboardData||{}).files||[])].filter(isImg);
   if(fs.length){e.preventDefault();readShots(fs)}
+});
+
+/* ---------- New reading: pick where the text comes from, and it opens ready to read ----------
+   No form. The title comes from the source, else a short first line, else the opening words.
+   Anything off is fixed later with the pencil, like any reading. */
+function autoTitle(raw){
+  const text=String(raw||'').replace(/\r\n?/g,'\n').trim();
+  const lines=text.split('\n'),first=(lines[0]||'').trim(),rest=lines.slice(1).join('\n').trim();
+  if(/^#{1,3}\s+\S/.test(first))return {title:first.replace(/^#+\s*/,'').slice(0,90),text:rest||text,from:'head'};
+  const words=first.split(/\s+/).filter(Boolean);
+  if(rest&&words.length<=10&&first.length<=70&&!/[.!?…,;:]["”’»)]?$/.test(first)&&/^[\p{Lu}\p{N}"“'‘¿¡]/u.test(first))
+    return {title:first,text:rest,from:'line'};
+  const one=text.replace(/\s+/g,' ');
+  const sent=((one.match(/^.*?[.!?…](?=\s|$)/)||[one])[0]).trim(),sw=sent.split(' ');
+  if(sw.length<=8)return {title:sent.replace(/[.!?…]+$/,'').slice(0,90),text,from:'start'};
+  const near=sw.slice(0,9).join(' ').match(/^(.{14,}?)[,;:]\s/);
+  const cut=near?near[1]:sw.slice(0,6).join(' ');
+  return {title:cut.replace(/[,;:]+$/,'')+'…',text,from:'start'};
+}
+function createReading(raw,title){
+  raw=String(raw||'').replace(/\r\n?/g,'\n').replace(/\n{3,}/g,'\n\n').trim();if(!raw)return null;
+  let t=String(title||'').trim(),custom=true;
+  if(t){
+    const f=raw.split('\n')[0].replace(/^#+\s*/,'').trim();
+    if(f.toLowerCase()===t.toLowerCase())raw=raw.split('\n').slice(1).join('\n').trim()||raw;
+  }else{const a=autoTitle(raw);t=a.title;raw=a.text;custom=a.from!=='start'}
+  const d={id:'d'+Date.now().toString(36),title:t.slice(0,90),raw,custom,bi:0,ms:0,nb:0,updatedAt:Date.now()};
+  if(homeCol)d.col=homeCol;
+  docs.push(d);saveDocs();closeAdd(true);openDoc(d.id);if(settings.imm)setImm(false);
+  return d;
+}
+var ADD={open:false,busy:false,run:0};
+function addMsg(t,keep){const m=$('addMsg');m.textContent=t||'';m.className='msg'+(t&&!keep?' bad':'')}
+function addBusy(b){ADD.busy=b;['addPaste','addShots','addFile'].forEach(i=>$(i).disabled=b)}
+function openAdd(){
+  if(ADD.open)return;ADD.open=true;addMsg('');addBusy(false);
+  $('addScrim').hidden=false;$('addSheet').hidden=false;
+  requestAnimationFrame(()=>{$('addScrim').classList.add('open');$('addSheet').classList.add('open')});
+  setTimeout(()=>{try{$('addPaste').focus({preventScroll:true})}catch(e){}},60);
+}
+function closeAdd(now){
+  if(!ADD.open)return;ADD.open=false;ADD.run++;addBusy(false);
+  $('addScrim').classList.remove('open');$('addSheet').classList.remove('open');
+  const done=()=>{if(!ADD.open){$('addScrim').hidden=true;$('addSheet').hidden=true}};
+  if(now||reduced)done();else setTimeout(done,240);
+}
+$('addScrim').addEventListener('click',()=>closeAdd());
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ADD.open){e.stopImmediatePropagation();closeAdd()}},true);
+$('addType').addEventListener('click',()=>{closeAdd(true);newReading()});
+/* Paste: whatever is on the clipboard becomes the reading. If the browser says no, the box opens for a long-press paste. */
+async function readClipboard(){
+  try{
+    if(navigator.clipboard&&navigator.clipboard.read){
+      const items=await navigator.clipboard.read();
+      for(const it of items){
+        const im=it.types.find(t=>/^image\//.test(t));
+        if(im&&!it.types.includes('text/plain')){const b=await it.getType(im);return {images:[new File([b],'clipboard.'+(im.split('/')[1]||'png'),{type:im})]}}
+        if(it.types.includes('text/html')){const h=await (await it.getType('text/html')).text();const t=/<(h[1-6]|li|p|tr)[\s>]/i.test(h)?htmlToText(h):'';if(t)return {text:t}}
+        if(it.types.includes('text/plain'))return {text:await (await it.getType('text/plain')).text()};
+      }
+    }
+  }catch(e){}
+  try{return {text:await navigator.clipboard.readText()}}catch(e){return {denied:true}}
+}
+$('addPaste').addEventListener('click',async()=>{
+  if(ADD.busy)return;const run=ADD.run;
+  const c=await readClipboard();if(run!==ADD.run)return;
+  if(c.images){readShots(c.images,'new');return}
+  if(c.text&&c.text.trim()){createReading(c.text);return}
+  closeAdd(true);newReading();
+  $('editErr').textContent=c.denied?'Long-press the box and choose Paste.':'Nothing to paste yet. Copy some text, or type it here.';
+});
+$('addShots').addEventListener('click',()=>{if(ADD.busy)return;
+  if(!vision.key||!vision.endpoint){addMsg('To read screenshots, add your Azure Vision key in Settings → Screenshots.');return}
+  $('addShotIn').click()});
+$('addShotIn').addEventListener('change',e=>{readShots(e.target.files,'new');e.target.value=''});
+$('addFile').addEventListener('click',()=>{if(!ADD.busy)$('addFileIn').click()});
+$('addFileIn').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  if(f.size>2e6){addMsg('That file is too big. Try one under 2 MB.');return}
+  if(!/\.(txt|md|markdown)$/i.test(f.name)&&!/^text\//.test(f.type||'')){addMsg('LexiFlow opens .txt and .md files for now.');return}
+  const t=await f.text();if(!t.trim()){addMsg('That file is empty.');return}
+  const a=autoTitle(t);
+  if(a.from==='start')createReading(t,titleFromName(f.name));else createReading(a.text,a.title);
 });
 /* Settings: save checks the key by reading a tiny image with two words on it. */
 function vxmsg(t,kind){const m=$('visionMsg');m.textContent=t;m.className='msg'+(kind?' '+kind:'')}
@@ -2391,8 +2523,8 @@ async function takeSharedShots(n){
     files.push(new File([b],decodeURIComponent(r.headers.get('x-name')||'')||'shot-'+i+'.png',{type:b.type||'image/png',lastModified:+r.headers.get('x-modified')||i}));
     await c.delete('./__share/'+i);
   }
-  if(files.length)readShots(files);
-  else $('editErr').textContent='The screenshots did not come through. Open them with the Screenshots button.';
+  if(files.length)readShots(files,'new');
+  else{openAdd();addMsg('The screenshots did not come through. Pick them with Screenshots.')}
 }
 $('back').addEventListener('click',()=>{renderHome();show('home')});
 $('editCur').addEventListener('click',()=>{if(P.doc)editReading(P.doc.id)});
