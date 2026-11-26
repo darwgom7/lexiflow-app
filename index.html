@@ -187,6 +187,20 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 .th.sys{background:linear-gradient(90deg,#F6F6F4 50%,#111 50%);color:#8C8C8C;font-family:var(--ui);font-size:13px;font-weight:700}
 .th.light{background:#F6F6F4;color:#1C1C1C}.th.sepia{background:#F4ECD8;color:#3B3226}.th.dark{background:#111;color:#F2F2F2}
 @media (prefers-reduced-motion:reduce){.sheet,.scrim{transition:none}}
+/* Meanings: hold a word (or hold and drag across a phrase), write what it means to you */
+#page{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+::highlight(lxpick){background-color:hsl(var(--hh) 70% 60% / .32)}
+::highlight(lxvocab){text-decoration:underline dotted 2px;text-decoration-color:var(--ok);text-underline-offset:4px}
+.txpop{position:fixed;z-index:30;left:12px;right:12px;max-width:440px;margin:0 auto;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.txsel{font-family:var(--read);font-weight:600;font-size:15px;line-height:1.35;max-height:3.2em;overflow:hidden}
+.txlab{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+.txsug{display:flex;flex-wrap:wrap;gap:6px;min-height:28px;align-items:center;font-size:13px;color:var(--muted)}
+.txsug button{border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:999px;padding:4px 11px;font:inherit;font-size:13px}
+#txIn{width:100%;font-size:16px;padding:9px 11px;border-radius:10px;border:1px solid var(--accent);background:var(--bg);color:var(--text)}
+.txrow{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.txacts{display:flex;align-items:center;gap:4px}
+.vtip{position:fixed;z-index:29;max-width:280px;background:var(--text);color:var(--bg);border-radius:10px;padding:6px 10px;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.2);pointer-events:none}
+
 /* New reading: one question, three doors */
 .addh{margin:2px 0 0;font-family:var(--read);font-size:22px;font-weight:600;text-align:center}
 .srcs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -469,6 +483,21 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
     </div>
 
     <div class="stack">
+      <h2 class="label">Translations (Azure Translator)</h2>
+      <p class="muted small">Hold a word, or hold and drag across a phrase, to see suggestions and write what it means to you. Uses a separate Azure resource: Translator.</p>
+      <div class="two">
+        <label class="field" for="txKey">Key
+          <input id="txKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste KEY 1 of your Translator resource">
+        </label>
+        <label class="field" for="txRegion">Region
+          <input id="txRegion" type="text" autocomplete="off" spellcheck="false" placeholder="eastus">
+        </label>
+      </div>
+      <div class="acts"><button class="primary" id="saveTx" type="button">Save key</button></div>
+      <p class="msg" id="txMsg" role="status"></p>
+    </div>
+
+    <div class="stack">
       <h2 class="label">Appearance</h2>
       <label class="field" for="themeSel">Theme
         <select id="themeSel">
@@ -529,6 +558,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
       <h2 class="label">Usage on this device</h2>
       <p class="small" id="usageText"></p>
       <p class="small" id="visionUse"></p>
+      <p class="small" id="txUse"></p>
       <p class="small" id="cacheText"></p>
       <div class="acts"><button class="ghost" id="clearAudio" type="button">Delete saved audio</button></div>
     </div>
@@ -586,6 +616,22 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <button class="ball sphere" id="ball" type="button" aria-label="Controls" aria-expanded="false" hidden><span class="bsph" id="ballSph"></span><svg class="bsv" viewBox="0 0 56 56" aria-hidden="true"><circle class="bbg" cx="28" cy="28" r="27"/><circle class="btrack" cx="28" cy="28" r="23"/><circle class="bring" id="ballRing" cx="28" cy="28" r="23"/></svg><span class="bin" id="ballIn"></span></button>
 <div class="ballturn" id="ballTurn" hidden></div>
 <button class="jump" id="jump" type="button" hidden></button>
+<div class="txpop" id="txPop" role="dialog" aria-label="Meaning" hidden>
+  <div class="txsel" id="txSel"></div>
+  <div class="txlab" id="txSugLab">Suggested</div>
+  <div class="txsug" id="txSug"></div>
+  <label class="txlab" for="txIn">Your meaning</label>
+  <input id="txIn" type="text" autocomplete="off" spellcheck="false" enterkeyhint="done" placeholder="Write what it means to you">
+  <div class="txrow">
+    <span class="txacts">
+      <button class="iconbtn" id="txHear" type="button" aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+      <button class="iconbtn" id="txCopy" type="button" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="linkbtn" id="txDel" type="button" hidden>Remove</button>
+    </span>
+    <button class="primary" id="txSave" type="button">Save</button>
+  </div>
+</div>
+<div class="vtip" id="vTip" role="status" hidden></div>
 <div class="scrim" id="addScrim" hidden></div>
 <div class="sheet" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addHead" hidden>
   <div class="in">
@@ -633,7 +679,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.18.1';
+const VERSION='2.19.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1158,6 +1204,7 @@ function renderSeg(i){
   });
   if(pos<text.length)node.appendChild(document.createTextNode(text.slice(pos)));
   if(i===P.loaded){P.cur=-1;P.sent=null}
+  if(typeof vocabSeg==='function')vocabSeg(i);
 }
 function applyRec(i,rec){
   const seg=P.segs[i];if(!seg||seg.rec===rec)return;
@@ -1175,7 +1222,7 @@ function openDoc(id){
   const d=findDoc(id);if(!d)return;
   stopAudio();
   const page=$('page');page.textContent='';
-  P.doc=d;P.segs=[];P.cur=-1;P.loaded=-1;JUMP.back=[];JUMP.fwd=[];$('jump').hidden=true;
+  P.doc=d;P.segs=[];P.cur=-1;P.loaded=-1;if(typeof VOC!=='undefined')VOC.bySeg.clear();JUMP.back=[];JUMP.fwd=[];$('jump').hidden=true;
   let list=null;
   buildBlocks(d).forEach(b=>{
     let node;
@@ -1551,7 +1598,9 @@ $('cc').addEventListener('click',e=>{
   if(!P.playing)play();else tick();
 });
 $('page').addEventListener('click',e=>{
+  if(SEL.eatClick){SEL.eatClick=false;return} /* the end of a hold, not a tap */
   if(window.getSelection&&String(window.getSelection()).length)return; /* the reader is selecting text */
+  vocabTip(e);
   const segEl=e.target.closest('.seg');if(!segEl)return;
   const i=+segEl.dataset.i,seg=P.segs[i];
   const w=e.target.closest('.w');
@@ -1640,13 +1689,14 @@ function openSettings(){
   paintBallSettings();
   $('homeStyle').value=settings.homeStyle||'shelves';
   $('autoflow').checked=!!settings.autoflow;$('themeSel').value=settings.theme;renderSwatches();$('hlSel').value=settings.hl||'both';$('fadeChk').checked=!!settings.fade;
-  $('voiceMsg').textContent='';$('voiceMsg').className='msg';$('vxEndpoint').value=vision.endpoint;$('vxKey').value=vision.key;$('visionMsg').textContent='';$('visionMsg').className='msg';$('libMsg').textContent='';
+  $('voiceMsg').textContent='';$('voiceMsg').className='msg';$('vxEndpoint').value=vision.endpoint;$('vxKey').value=vision.key;$('txKey').value=trn.key;$('txRegion').value=trn.region;$('txMsg').textContent='';$('visionMsg').textContent='';$('visionMsg').className='msg';$('libMsg').textContent='';
   refreshUsage();renderReaders();
   show('settings');
 }
 function refreshUsage(){
   $('usageText').textContent='Characters sent to Azure this month: '+usage().toLocaleString('en-US')+' of 500,000 free.';
   $('visionUse').textContent='Screenshots read this month: '+visionUsage().toLocaleString('en-US')+' of 5,000 free.';
+  $('txUse').textContent='Characters translated this month: '+txUsage().toLocaleString('en-US')+' of 2,000,000 free.';
   idbStats().then(s=>{$('cacheText').textContent='Saved audio: '+s.n+' part'+(s.n===1?'':'s')+', '+(s.bytes/1048576).toFixed(1)+' MB.'});
 }
 function readVoiceForm(){
@@ -2504,6 +2554,208 @@ $('addFileIn').addEventListener('change',async e=>{
   const a=autoTitle(t);
   if(a.from==='start')createReading(t,titleFromName(f.name));else createReading(a.text,a.title);
 });
+
+/* ---------- meanings: hold a word, or hold and drag across a phrase ----------
+   LexiFlow's own popup (the phone's selection bar is turned off on the text): Azure Translator suggests,
+   you write what it means to you, and what you save is underlined in every reading where it appears. */
+const trn=Object.assign({key:'',region:'eastus',to:'es'},load('lexiflow.tx',{})||{});
+const TXAPI='https://api.cognitive.microsofttranslator.com';
+function txUsage(add){let u=load('lexiflow.txUse',null);if(!u||u.m!==monthKey())u={m:monthKey(),n:0};if(add){u.n+=add;save('lexiflow.txUse',u)}return u.n}
+const txCache=new Map(Object.entries(load('lexiflow.txCache',{})||{}));
+async function txCall(path,text,cfg){
+  cfg=cfg||trn;let r;
+  try{r=await fetch(TXAPI+path+'&from=en&to='+encodeURIComponent(cfg.to||'es'),{method:'POST',
+    headers:{'Ocp-Apim-Subscription-Key':cfg.key,'Ocp-Apim-Subscription-Region':cfg.region||'eastus','Content-Type':'application/json'},body:JSON.stringify([{Text:text}])})}
+  catch(e){throw new Error('Could not reach Azure Translator. Check your connection.')}
+  if(r.status===401||r.status===403)throw new Error('Azure did not accept the Translator key or region. Copy KEY 1 and the Location again.');
+  if(r.status===429)throw new Error('Azure is asking to slow down. Try again in a moment.');
+  if(!r.ok){let m='';try{m=((await r.json()).error||{}).message||''}catch(e){}throw new Error('Azure Translator could not answer'+(m?': '+m:'.'))}
+  txUsage(text.length);return r.json();
+}
+/* One or a few suggestions: the plain translation, and for one word the dictionary's other meanings. */
+async function suggest(text){
+  const k=text.toLowerCase();if(txCache.has(k))return txCache.get(k);
+  const one=!/\s/.test(text.trim());
+  const [t,d]=await Promise.all([txCall('/translate?api-version=3.0',text),one?txCall('/dictionary/lookup?api-version=3.0',text).catch(()=>null):null]);
+  const out=[];const add=v=>{v=String(v||'').trim();if(v&&!out.some(x=>x.toLowerCase()===v.toLowerCase()))out.push(v)};
+  add(((t[0]||{}).translations||[])[0]&&t[0].translations[0].text);
+  if(d)(((d[0]||{}).translations)||[]).slice(0,5).forEach(x=>add(x.displayTarget));
+  const res=out.slice(0,5);txCache.set(k,res);
+  if(txCache.size>400)txCache.delete(txCache.keys().next().value);
+  save('lexiflow.txCache',Object.fromEntries(txCache));return res;
+}
+/* saved meanings */
+const normV=t=>String(t||'').replace(/[’‘]/g,"'").replace(/\s+/g,' ').trim().toLowerCase();
+let vocab=load('lexiflow.vocab',{})||{};
+const VOC={bySeg:new Map()};
+const hlOK=typeof CSS!=='undefined'&&CSS.highlights&&typeof Highlight!=='undefined';
+function textNodes(root){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const a=[];let n;while((n=w.nextNode()))a.push(n);return a}
+function rangeIn(root,s,e){
+  const r=document.createRange();let pos=0,set=false;
+  for(const n of textNodes(root)){const L=n.data.length;
+    if(!set&&s<=pos+L){r.setStart(n,Math.max(0,s-pos));set=true}
+    if(set&&e<=pos+L){r.setEnd(n,Math.max(0,e-pos));return r}
+    pos+=L}
+  return set?r:null;
+}
+function offsetIn(root,node,off){let pos=0;for(const n of textNodes(root)){if(n===node)return pos+off;pos+=n.data.length}return -1}
+const esc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function vocabSeg(i){
+  const seg=P.segs[i];if(!seg||!seg.el)return;
+  const keys=Object.keys(vocab),found=[];
+  if(keys.length){
+    const txt=seg.text.replace(/[’‘]/g,"'");
+    keys.forEach(k=>{
+      const re=new RegExp('(?<![\\p{L}\\p{N}])'+k.split(' ').map(esc).join('\\s+')+'(?![\\p{L}\\p{N}])','giu');let m;
+      while((m=re.exec(txt))){found.push({s:m.index,e:m.index+m[0].length,k});if(!m[0].length)re.lastIndex++}
+    });
+  }
+  VOC.bySeg.set(i,found.map(f=>Object.assign(f,{r:rangeIn(seg.el,f.s,f.e)})).filter(f=>f.r));
+  paintVocab();
+}
+function paintVocab(){
+  if(!hlOK)return;const all=[];VOC.bySeg.forEach(a=>a.forEach(f=>all.push(f.r)));
+  CSS.highlights.set('lxvocab',new Highlight(...all));
+}
+function vocabRefresh(){P.segs.forEach((_,i)=>vocabSeg(i))}
+/* point → position in a part of the text */
+function caretAt(x,y){
+  if(document.caretPositionFromPoint){const c=document.caretPositionFromPoint(x,y);if(c)return {node:c.offsetNode,off:c.offset}}
+  if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(r)return {node:r.startContainer,off:r.startOffset}}
+  return null;
+}
+function hitAt(x,y){
+  const elx=document.elementFromPoint(x,y),segEl=elx&&elx.closest&&elx.closest('#page .seg');if(!segEl)return null;
+  const c=caretAt(x,y);if(!c||!segEl.contains(c.node))return null;
+  const i=+segEl.dataset.i,off=offsetIn(segEl,c.node,c.off);if(off<0)return null;
+  return {i,off,segEl,text:P.segs[i].text};
+}
+const isW=ch=>/[\p{L}\p{N}'’-]/u.test(ch||'');
+function wordAround(text,off){
+  let s=off,e=off;if(!isW(text[s])&&isW(text[s-1]))s=e=off-1;if(!isW(text[s]))return null;
+  while(s>0&&isW(text[s-1]))s--;while(e<text.length&&isW(text[e]))e++;
+  while(s<e&&/['’-]/.test(text[s]))s++;while(e>s&&/['’-]/.test(text[e-1]))e--;
+  return e>s?{s,e}:null;
+}
+/* the hold */
+const SEL={t:0,on:false,i:-1,a:null,b:null,x:0,y:0,eatClick:false,src:null};
+function selPaint(){
+  const seg=P.segs[SEL.i];if(!seg||!SEL.a)return;
+  const s=Math.min(SEL.a.s,SEL.b.s),e=Math.max(SEL.a.e,SEL.b.e);SEL.s=s;SEL.e=e;
+  SEL.range=rangeIn(seg.el,s,e);
+  if(hlOK&&SEL.range)CSS.highlights.set('lxpick',new Highlight(SEL.range));
+}
+function selClear(){SEL.on=false;SEL.a=SEL.b=null;SEL.range=null;if(hlOK)CSS.highlights.delete('lxpick')}
+function selStart(x,y){
+  const h=hitAt(x,y);if(!h)return false;
+  let w=wordAround(h.text,h.off);if(!w)return false;
+  /* holding a saved word or phrase picks all of it */
+  const v=(VOC.bySeg.get(h.i)||[]).find(f=>h.off>=f.s&&h.off<f.e);if(v)w={s:v.s,e:v.e};
+  SEL.on=true;SEL.i=h.i;SEL.a=w;SEL.b=w;selPaint();
+  if(navigator.vibrate)try{navigator.vibrate(12)}catch(e){}
+  txClose(true);return true;
+}
+function selMove(x,y){
+  const h=hitAt(x,y);if(!h||h.i!==SEL.i)return;
+  const w=wordAround(h.text,h.off);if(w){SEL.b=w;selPaint()}
+}
+function selEnd(){if(!SEL.on)return;SEL.on=false;SEL.eatClick=true;setTimeout(()=>{SEL.eatClick=false},400);txOpen()}
+function holdDown(x,y,src){
+  clearTimeout(SEL.t);SEL.x=x;SEL.y=y;SEL.src=src;
+  if(view!=='reader')return;
+  SEL.t=setTimeout(()=>{SEL.t=0;selStart(SEL.x,SEL.y)},450);
+}
+function holdMove(x,y,e){
+  if(SEL.on){if(e&&e.cancelable)e.preventDefault();selMove(x,y);return}
+  if(SEL.t&&Math.hypot(x-SEL.x,y-SEL.y)>10){clearTimeout(SEL.t);SEL.t=0}
+}
+function holdUp(){clearTimeout(SEL.t);SEL.t=0;if(SEL.on)selEnd()}
+const pg=$('page');
+pg.addEventListener('touchstart',e=>{if(e.touches.length!==1){clearTimeout(SEL.t);return}const t=e.touches[0];holdDown(t.clientX,t.clientY,'touch')},{passive:true});
+pg.addEventListener('touchmove',e=>{const t=e.touches[0];if(t)holdMove(t.clientX,t.clientY,e)},{passive:false});
+pg.addEventListener('touchend',e=>{if(SEL.on&&e.cancelable)e.preventDefault();holdUp()});
+pg.addEventListener('touchcancel',()=>{clearTimeout(SEL.t);if(SEL.on)holdUp()});
+pg.addEventListener('mousedown',e=>{if(e.button||SEL.src==='touch'&&Date.now()-SEL.tt<800)return;holdDown(e.clientX,e.clientY,'mouse')});
+pg.addEventListener('touchstart',()=>{SEL.tt=Date.now()},{passive:true});
+document.addEventListener('mousemove',e=>{if(SEL.src==='mouse'&&(SEL.t||SEL.on))holdMove(e.clientX,e.clientY,e)});
+document.addEventListener('mouseup',()=>{if(SEL.src==='mouse')holdUp()});
+pg.addEventListener('contextmenu',e=>e.preventDefault());
+/* the popup */
+const TX={open:false,was:false,text:'',key:'',run:0};
+function txPlace(){
+  const box=$('txPop');if(box.hidden||!SEL.range)return;
+  const rs=[...SEL.range.getClientRects()],r=rs.length?rs[rs.length-1]:SEL.range.getBoundingClientRect(),first=rs.length?rs[0]:r;
+  const vv=window.visualViewport,vh=vv?vv.height:innerHeight,top0=vv?vv.offsetTop:0,h=box.offsetHeight;
+  let y=r.bottom+10;
+  if(y+h>vh-8)y=first.top-h-10;
+  if(y<8)y=Math.max(8,vh-h-8);
+  box.style.top=Math.round(y+top0)+'px';
+}
+function txOpen(){
+  const seg=P.segs[SEL.i];if(!seg||SEL.s==null)return;
+  const text=seg.text.slice(SEL.s,SEL.e).replace(/\s+/g,' ').trim();if(!text)return;
+  TX.text=text;TX.key=normV(text);TX.run++;
+  TX.was=!!P.playing;if(P.playing)pauseAudio();
+  const saved=vocab[TX.key];
+  $('txSel').textContent=text;$('txIn').value=saved?saved.m:'';$('txDel').hidden=!saved;
+  $('txPop').hidden=false;TX.open=true;txPlace();
+  loadSuggestions(text,TX.run);
+}
+async function loadSuggestions(text,run){
+  const box=$('txSug');box.textContent='';
+  if(!trn.key){box.textContent='Add a Translator key in Settings to see suggestions.';txPlace();return}
+  box.textContent='Looking it up…';
+  try{
+    const list=await suggest(text);if(run!==TX.run)return;
+    box.textContent='';
+    if(!list.length){box.textContent='No suggestion for this one.';txPlace();return}
+    list.forEach(v=>{const b=el('button',null,v);b.type='button';b.addEventListener('click',()=>{$('txIn').value=v;$('txIn').focus()});box.appendChild(b)});
+  }catch(e){if(run===TX.run)box.textContent=e.message}
+  txPlace();
+}
+function txClose(quiet){
+  if(!TX.open){if(!quiet)selClear();return}
+  TX.open=false;TX.run++;$('txPop').hidden=true;$('txIn').blur();
+  if(!quiet){selClear();if(TX.was&&view==='reader')play()}
+  TX.was=false;
+}
+$('txSave').addEventListener('click',()=>{
+  const m=$('txIn').value.trim();
+  if(m)vocab[TX.key]={t:TX.text,m,at:Date.now()};else delete vocab[TX.key];
+  save('lexiflow.vocab',vocab);txClose();vocabRefresh();
+});
+$('txIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('txSave').click()}});
+$('txDel').addEventListener('click',()=>{delete vocab[TX.key];save('lexiflow.vocab',vocab);txClose();vocabRefresh()});
+$('txCopy').addEventListener('click',()=>{try{navigator.clipboard.writeText(TX.text)}catch(e){}});
+$('txHear').addEventListener('click',async()=>{
+  if(!hasKey()){note('Add your Azure key in Settings to hear this.',true);return}
+  const b=$('txHear');b.disabled=true;
+  try{const rec=await getAudio(TX.text,voiceName());tester.src=URL.createObjectURL(rec.blob);tester.play().catch(()=>{})}
+  catch(e){note(e.message,true)}finally{b.disabled=false}
+});
+document.addEventListener('pointerdown',e=>{if(TX.open&&!e.target.closest('#txPop'))txClose()},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&TX.open){e.stopImmediatePropagation();txClose()}},true);
+if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(TX.open)txPlace()});
+/* tapping a saved word: it still jumps there, and its meaning shows for a moment */
+function vocabTip(e){
+  const h=hitAt(e.clientX,e.clientY);if(!h)return;
+  const v=(VOC.bySeg.get(h.i)||[]).find(f=>h.off>=f.s&&h.off<f.e);if(!v||!vocab[v.k])return;
+  const tip=$('vTip'),r=v.r.getBoundingClientRect();
+  tip.textContent=vocab[v.k].m;tip.hidden=false;
+  const w=tip.offsetWidth;tip.style.left=Math.round(Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2)))+'px';
+  tip.style.top=Math.round(r.top>50?r.top-tip.offsetHeight-6:r.bottom+6)+'px';
+  clearTimeout(TX.tipT);TX.tipT=setTimeout(()=>{tip.hidden=true},2800);
+}
+/* settings */
+function txmsg(t,kind){const m=$('txMsg');m.textContent=t;m.className='msg'+(kind?' '+kind:'')}
+$('saveTx').addEventListener('click',async()=>{
+  const f={key:$('txKey').value.trim(),region:($('txRegion').value.trim()||'eastus').toLowerCase().replace(/\s+/g,''),to:trn.to||'es'};
+  Object.assign(trn,f);save('lexiflow.tx',trn);$('txRegion').value=f.region;
+  if(!f.key){txmsg('Saved.');return}
+  const b=$('saveTx');b.disabled=true;txmsg('Checking the key with Azure…');
+  try{const r=await txCall('/translate?api-version=3.0','Hello',f);txmsg(((r[0]||{}).translations||[]).length?'Saved. The key works.':'Saved. Azure answered, but with nothing to show.','ok')}
+  catch(e){txmsg(e.message,'bad')}finally{b.disabled=false;refreshUsage()}
+});
 /* Settings: save checks the key by reading a tiny image with two words on it. */
 function vxmsg(t,kind){const m=$('visionMsg');m.textContent=t;m.className='msg'+(kind?' '+kind:'')}
 function testImage(){
@@ -2686,7 +2938,7 @@ renderHome();show('home');takeShare();
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
-window.__lexi={P,audio,settings,azure,docs:()=>docs,getAudio,idbStats};
+window.__lexi={P,audio,settings,azure,docs:()=>docs,getAudio,idbStats,vocab:()=>vocab,SEL,TX};
 })();
 </script>
 </body>
