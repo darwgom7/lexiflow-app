@@ -192,7 +192,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 ::highlight(lxpick){background-color:hsl(var(--hh) 70% 60% / .32)}
 ::highlight(lxvocab){text-decoration:underline dotted 2px;text-decoration-color:var(--ok);text-underline-offset:4px}
 .txpop{position:fixed;z-index:30;left:12px;right:12px;max-width:440px;margin:0 auto;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
-.txsel{font-family:var(--read);font-weight:600;font-size:15px;line-height:1.35;max-height:3.2em;overflow:hidden}
+.txsel{font-family:var(--read);font-weight:600;font-size:15px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .txlab{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
 .txsug{display:flex;flex-wrap:wrap;gap:6px;min-height:28px;align-items:center;font-size:13px;color:var(--muted)}
 .txsug button{border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:999px;padding:4px 11px;font:inherit;font-size:13px}
@@ -679,7 +679,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.19.0';
+const VERSION='2.19.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1195,9 +1195,11 @@ function renderSeg(i){
     const sn=el('span','sent');let p=r.s;
     while(k<words.length&&words[k].s<r.e){
       const w=words[k];
-      if(w.s>p)gap(sn,text.slice(p,w.s),k);
-      const sp=el('span','w',text.slice(w.s,w.e));sp.dataset.k=String(k);
-      sn.appendChild(sp);seg.spans.push(sp);seg.wsent.push(si);p=w.e;k++;
+      /* Azure's word timings can overlap (around quotes): never write a letter twice */
+      const ws=Math.max(w.s,p),we=Math.max(ws,w.e);
+      if(ws>p)gap(sn,text.slice(p,ws),k);
+      const sp=el('span','w',text.slice(ws,we));sp.dataset.k=String(k);
+      sn.appendChild(sp);seg.spans.push(sp);seg.wsent.push(si);p=we;k++;
     }
     if(p<r.e)gap(sn,text.slice(p,r.e),k);
     node.appendChild(sn);seg.sentEls.push(sn);pos=Math.max(r.e,p);
@@ -1336,8 +1338,9 @@ function ccRender(seg,si,idx){
   let p=r.s;
   (seg.words||[]).forEach((w,k)=>{
     if(seg.wsent[k]!==si)return;
-    if(w.s>p)inner.appendChild(document.createTextNode(seg.text.slice(p,w.s)));
-    const sp=el('span','w',seg.text.slice(w.s,w.e));sp.dataset.k=String(k);inner.appendChild(sp);P.ccMap[k]=sp;p=w.e;
+    const ws=Math.max(w.s,p),we=Math.max(ws,w.e);
+    if(ws>p)inner.appendChild(document.createTextNode(seg.text.slice(p,ws)));
+    const sp=el('span','w',seg.text.slice(ws,we));sp.dataset.k=String(k);inner.appendChild(sp);P.ccMap[k]=sp;p=we;
   });
   if(p<r.e)inner.appendChild(document.createTextNode(seg.text.slice(p,r.e)));
   box.scrollTop=0;
@@ -2938,7 +2941,7 @@ renderHome();show('home');takeShare();
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
-window.__lexi={P,audio,settings,azure,docs:()=>docs,getAudio,idbStats,vocab:()=>vocab,SEL,TX};
+window.__lexi={renderSeg,P,audio,settings,azure,docs:()=>docs,getAudio,idbStats,vocab:()=>vocab,SEL,TX};
 })();
 </script>
 </body>
