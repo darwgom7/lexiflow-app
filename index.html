@@ -633,7 +633,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.18.0';
+const VERSION='2.18.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2424,6 +2424,15 @@ function autoTitle(raw){
     return {title:first,text:rest,from:'line'};
   const one=text.replace(/\s+/g,' ');
   const sent=((one.match(/^.*?[.!?…](?=\s|$)/)||[one])[0]).trim(),sw=sent.split(' ');
+  /* A short first sentence written like a title ("The Milkmaid and her Pot of Milk.") followed by more text:
+     Kindle and others copy the title glued to the story. Take it out and use it as the heading. */
+  const small=/^(a|an|the|and|or|but|nor|of|in|on|at|to|for|with|by|from|into|as|is|her|his|its|their|my|your|our|vs)$/i;
+  const after=one.slice(sent.length).trim();
+  if(sw.length>=2&&sw.length<=10&&after&&/^[\p{Lu}"“]/u.test(after)&&/^[\p{Lu}\p{N}]/u.test(sent)&&
+     sw.every((w,i)=>{const c=w.replace(/^["“'‘(]+|[.!?…,;:"”'’)]+$/g,'');return !c||/^[\p{Lu}\p{N}]/u.test(c)||(i>0&&small.test(c))})){
+    const m0=text.match(/^[\s\S]*?[.!?…](?=\s|$)/),rest=m0?text.slice(m0[0].length).trim():after;
+    return {title:sent.replace(/[.!?…]+$/,'').slice(0,90),text:rest||after,from:'line'};
+  }
   if(sw.length<=8)return {title:sent.replace(/[.!?…]+$/,'').slice(0,90),text,from:'start'};
   const near=sw.slice(0,9).join(' ').match(/^(.{14,}?)[,;:]\s/);
   const cut=near?near[1]:sw.slice(0,6).join(' ');
