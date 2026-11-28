@@ -127,10 +127,15 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .ctl{display:flex;align-items:center;gap:10px}
 .playbtn{position:relative;width:56px;height:56px;border-radius:50%;border:0;background:none;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,.18);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .playbtn .psph{position:absolute;inset:0;border-radius:50%;will-change:transform}
+.playbtn svg.psv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+/* progress of the part being read, around the play sphere: the same ring as the ball in immersive mode */
+.ptrack{fill:none;stroke:rgba(255,255,255,.35);stroke-width:3}
+.pring{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .25s linear}
 .playbtn .pic{position:relative;display:inline-flex;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .playbtn:hover{filter:brightness(1.08)}
 .playbtn svg{width:24px;height:24px}
 .ctl .icon{width:48px;height:48px;border-radius:50%;padding:0}
+#repBtn svg{width:22px;height:22px}
 .ctl select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:14px;font-weight:600;margin-left:auto}
 .status{font-size:13px;color:var(--muted);min-height:1.3em;margin:0}
 .status.bad{color:var(--bad);font-weight:600}
@@ -237,8 +242,15 @@ body.imm.reading main{padding-top:max(22px,env(safe-area-inset-top))}
 body.imm.reading .bar{background:var(--bg);border-top:0;padding-top:6px}
 body.imm.reading .bar .ctl,body.imm.reading .bar #note{display:none}
 body.imm.reading .bar .cccard{background:var(--card)}
-.foot{display:none;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding:0 4px}
+.foot{position:relative;display:none;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding:0 4px}
 body.imm.reading .foot{display:flex;align-items:center}
+/* the whole reading: a thin line on the top edge of the player (or of the bottom line in immersive mode).
+   The part being read is the ring around the play sphere / ball. */
+.gtrack{position:absolute;left:0;right:0;top:-1px;height:3px;background:color-mix(in srgb,var(--accent) 18%,transparent);pointer-events:none}
+.gtrack i{display:block;height:100%;width:var(--gp,0%);background:var(--accent);transition:width .3s linear}
+.foot .gtrack{left:4px;right:4px;top:-7px;height:2px;border-radius:2px;overflow:hidden}
+body.imm.reading .bar>.gtrack{display:none}
+.readhead .track{display:none}
 /* The way out of immersive mode lives at the end of the bottom line, where text never runs over it. */
 body.imm.reading:not(.foot-on) :is(#footLeft,#footPart,#footPct){visibility:hidden}
 .fend{display:inline-flex;align-items:center;gap:8px}
@@ -596,6 +608,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 </main>
 
 <div class="bar" id="bar" hidden>
+  <div class="gtrack" aria-hidden="true"><i></i></div>
   <div class="in">
     <div class="cccard" id="cc" hidden>
       <div class="ccturn" id="ccTurn" hidden></div>
@@ -604,13 +617,14 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
     </div>
     <div class="ctl">
       <button class="ghost icon" id="prev" type="button" aria-label="Previous sentence" title="Previous sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7l-5 5 5 5"/><path d="M7 8v8"/></svg></button>
-      <button class="playbtn" id="playBtn" type="button" aria-label="Play" title="Play or pause. Hold to change reader"><span class="psph" id="playSph"></span><span class="pic" id="playIc"></span></button>
+      <button class="playbtn" id="playBtn" type="button" aria-label="Play" title="Play or pause. Hold to change reader"><span class="psph" id="playSph"></span><svg class="psv" viewBox="0 0 56 56" aria-hidden="true"><circle class="ptrack" cx="28" cy="28" r="24.5"/><circle class="pring" id="playRing" cx="28" cy="28" r="24.5"/></svg><span class="pic" id="playIc"></span></button>
       <button class="ghost icon" id="next" type="button" aria-label="Next sentence" title="Next sentence"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l5 5-5 5"/><path d="M17 8v8"/></svg></button>
+      <button class="ghost icon" id="repBtn" type="button" aria-label="Repeat sentence" title="Repeat sentence"></button>
       <button class="ccbtn" id="ccBtn" type="button" aria-label="Captions" title="Captions (current sentence, large)" aria-pressed="false">CC</button>
       <button class="speedchip" id="rate" type="button" aria-label="Speed and reading options"></button>
     </div>
     <p class="status" id="note" role="status"></p>
-    <div class="foot" id="foot"><span id="footLeft"></span><span id="footPart"></span><span class="fend"><span id="footPct"></span><button type="button" class="iconbtn" id="immExit" aria-label="Exit immersive mode" title="Exit immersive mode (H)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg></button></span></div>
+    <div class="foot" id="foot"><div class="gtrack" aria-hidden="true"><i></i></div><span id="footLeft"></span><span id="footPart"></span><span class="fend"><span id="footPct"></span><button type="button" class="iconbtn" id="immExit" aria-label="Exit immersive mode" title="Exit immersive mode (H)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg></button></span></div>
   </div>
 </div>
 
@@ -696,7 +710,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.20.2';
+const VERSION='2.20.3';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1284,11 +1298,11 @@ function setActive(i){
 function progress(){
   const n=P.segs.length||1;let f=P.i;
   if(P.loaded===P.i&&audio.duration)f+=Math.min(1,audio.currentTime/audio.duration);
-  $('progFill').style.width=(f/n*100)+'%';
+  $('progFill').style.width=(f/n*100)+'%';document.body.style.setProperty('--gp',(f/n*100).toFixed(2)+'%');
   const left=timeLeft(),txt='Part '+(P.i+1)+' of '+P.segs.length+(left?' · '+left:'');
   if(txt!==P.leftShown){P.leftShown=txt;$('progText').textContent=txt;$('footLeft').textContent=left||'';$('footPart').textContent='Part '+(P.i+1)+' of '+P.segs.length}
   const pc=Math.round(f/n*100)+'%';if(pc!==P.pctShown){P.pctShown=pc;$('footPct').textContent=pc}
-  ballPaint();
+  ballPaint();playRing();
 }
 /* ---------- time estimates ---------- */
 const MS_PER_WORD=380; /* about 160 words a minute at 1.0x */
@@ -1493,7 +1507,7 @@ function finish(){
   const ls=P.segs[P.loaded];if(settings.cc&&ls&&ls.spans){ls.spans.forEach(e=>e.classList.add('past'));(ls.gaps||[]).forEach(e=>e.classList.add('past'));ls.wpast=true}
   document.querySelectorAll('#ccText .w.on,#fCur .w.on').forEach(x=>x.classList.remove('on'));
   if(P.doc){P.doc.done=true;P.doc.bi=P.segs.length-1;P.doc.ms=0;P.doc.updatedAt=Date.now();saveDocs()}
-  $('progFill').style.width='100%';
+  $('progFill').style.width='100%';document.body.style.setProperty('--gp','100%');
   note('Finished. Tap any word to hear it again.');
 }
 /* ---------- shadowing: repeat a sentence and leave a pause to say it out loud ---------- */
@@ -1899,6 +1913,8 @@ const BALL_ACTS={
   options:{l:'Reading options',i:()=>BI.options,f:()=>openSheet()},
   bars:{l:'Show or hide bars',i:()=>settings.imm?BI.cornersIn:BI.corners,f:()=>setImm(!settings.imm),on:()=>!settings.imm}
 };
+/* repeat sits in the main player too, with the same icon as on the ball */
+$('repBtn').innerHTML=BI.prev;$('repBtn').addEventListener('click',()=>repeatSentence());
 const GESTURES=[['menu','Open menu'],['play','Play / pause'],['repeat','Repeat sentence'],['next','Next sentence'],['prev','Previous sentence'],['cc','Captions on or off'],['bars','Show or hide bars'],['none','Nothing']];
 var BALL={inner:'',fan:null,more:null,tapT:0,tuckT:0,tipT:0,drag:null};
 const fanOpen=()=>!!(BALL&&BALL.fan);
@@ -1951,6 +1967,11 @@ function armTuck(){
   BALL.tuckT=setTimeout(()=>{if(!fanOpen()&&!$('ball').hidden&&!$('ballBasics').classList.contains('on')){$('ball').classList.add('tuck');ballPlace();basicsSync()}},5000);
 }
 function untuck(){const b=$('ball');if(b.classList.contains('tuck')){b.classList.remove('tuck');ballPlace();basicsSync();return true}return false}
+function playRing(){
+  const C=2*Math.PI*24.5,p=(P.loaded===P.i&&audio.duration)?Math.min(1,audio.currentTime/audio.duration):0,r=$('playRing');
+  const off=(C*(1-p)).toFixed(1);if(r.dataset.o===off)return;r.dataset.o=off;
+  r.style.strokeDasharray=C.toFixed(1);r.style.strokeDashoffset=off;
+}
 function ballPaint(){
   if(!BALL)return;
   const b=$('ball');if(b.hidden)return;
