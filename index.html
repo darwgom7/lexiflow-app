@@ -205,12 +205,9 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 /* like a real marker: on light paper it multiplies (text stays dark), on dark it lightens */
 :root[data-theme="dark"] .vlayer{mix-blend-mode:screen}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]):not([data-theme="sepia"]) .vlayer{mix-blend-mode:screen}}
-.vb{position:absolute;border-radius:3px}
-.vb-g{background:rgb(93 202 165 / .42)}.vb-g.w1{background:rgb(93 202 165 / .8)}
-.vb-b{background:rgb(133 183 235 / .42)}.vb-b.w1{background:rgb(133 183 235 / .8)}
-.vb-a{background:rgb(239 159 39 / .42)}.vb-a.w1{background:rgb(239 159 39 / .8)}
-.vb-p{background:rgb(237 147 177 / .42)}.vb-p.w1{background:rgb(237 147 177 / .8)}
-.vb-v{background:rgb(175 169 236 / .42)}.vb-v.w1{background:rgb(175 169 236 / .8)}
+.vb{position:absolute;border-radius:3px;background:rgb(var(--vc) / var(--va))}
+.p1{--va:.42}.w1{--va:.8}
+.vb-coral{--vc:255 123 107}.vb-miel{--vc:246 185 59}.vb-menta{--vc:45 204 154}.vb-cielo{--vc:93 173 236}.vb-lavanda{--vc:166 140 242}
 .txdots{display:flex;gap:12px;margin:2px 0 2px}
 .txdots button{width:28px;height:28px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line);padding:0}
 .txdots button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--text)}
@@ -223,7 +220,16 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 #txIn{width:100%;font-size:16px;padding:9px 11px;border-radius:10px;border:1px solid var(--accent);background:var(--bg);color:var(--text)}
 .txrow{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
 .txacts{display:flex;align-items:center;gap:4px}
-.vtip{position:fixed;z-index:29;max-width:280px;background:var(--text);color:var(--bg);border-radius:10px;padding:6px 10px;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.2);pointer-events:none}
+.vtip{position:fixed;z-index:29;max-width:300px;background:var(--text);color:var(--bg);border-radius:10px;padding:5px 11px;font-size:14px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.2);pointer-events:none;isolation:isolate}
+/* each row: the saved words wearing the same marker as in the text, then what they mean to you */
+.vrow{padding:2px 0}
+.vterm{position:relative;font-family:var(--read)}
+.vterm>i{position:absolute;left:-1px;right:-1px;bottom:.12em;height:.42em;border-radius:3px;z-index:-1;background:rgb(var(--vc) / var(--va))}
+.vtip .p1{--va:.62}.vtip .w1{--va:.88}
+.vmean{margin-left:7px;color:color-mix(in srgb,var(--bg) 72%,var(--text))}
+:root[data-theme="dark"] .vterm>i{mix-blend-mode:multiply}:root[data-theme="dark"] .vtip .p1{--va:.55}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]):not([data-theme="sepia"]) .vterm>i{mix-blend-mode:multiply}:root:not([data-theme="light"]):not([data-theme="sepia"]) .vtip .p1{--va:.55}}
+.txdname{font-size:12px;color:var(--muted);min-height:16px}
 
 /* New reading: one question, three doors */
 .addh{margin:2px 0 0;font-family:var(--read);font-size:22px;font-weight:600;text-align:center}
@@ -258,6 +264,8 @@ body.imm.reading .bar>.gtrack{display:none}
 /* The way out of immersive mode lives at the end of the bottom line, where text never runs over it. */
 body.imm.reading:not(.foot-on) :is(#footLeft,#footPart,#footPct){visibility:hidden}
 .fend{display:inline-flex;align-items:center;gap:8px}
+.trbtn[aria-pressed="true"]{color:var(--accent)}
+.trbtn[hidden]{display:none}
 #immExit{width:34px;height:30px;min-width:0;min-height:0;margin:-4px -6px -4px 0;color:var(--muted);flex:none}
 body.focuson #immExit{visibility:hidden}
 .ball{position:fixed;z-index:16;left:0;top:0;width:calc(56px * var(--bs,1));height:calc(56px * var(--bs,1));padding:0;border:0;background:none;border-radius:50%;touch-action:none;-webkit-user-select:none;user-select:none;filter:drop-shadow(0 4px 12px rgba(0,0,0,.22));transition:left .25s cubic-bezier(.2,.8,.2,1),top .25s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
@@ -447,6 +455,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
           <span class="acts tight">
             <button class="iconbtn" id="editCur" type="button" aria-label="Edit text" title="Edit text"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
             <button class="iconbtn" id="offlineBtn" type="button" aria-label="Save offline" title="Save offline"></button>
+            <button class="iconbtn trbtn" id="trBtn" type="button" aria-pressed="false" hidden></button>
             <button class="iconbtn" id="aaBtn" type="button" aria-label="Reading options" title="Reading options"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18l5-12 5 12"/><path d="M4.7 14h6.6"/><path d="M14.5 18l3.5-8 3.5 8"/><path d="M15.6 15.5h4.8"/></svg></button>
             <button class="iconbtn" id="immBtn" type="button" aria-label="Hide bars" title="Hide bars (H)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
           </span>
@@ -628,7 +637,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
       <button class="speedchip" id="rate" type="button" aria-label="Speed and reading options"></button>
     </div>
     <p class="status" id="note" role="status"></p>
-    <div class="foot" id="foot"><div class="gtrack" aria-hidden="true"><i></i></div><span id="footLeft"></span><span id="footPart"></span><span class="fend"><span id="footPct"></span><button type="button" class="iconbtn" id="immExit" aria-label="Exit immersive mode" title="Exit immersive mode (H)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg></button></span></div>
+    <div class="foot" id="foot"><div class="gtrack" aria-hidden="true"><i></i></div><span id="footLeft"></span><span id="footPart"></span><span class="fend"><button type="button" class="iconbtn trbtn" id="trFoot" aria-pressed="false" hidden></button><span id="footPct"></span><button type="button" class="iconbtn" id="immExit" aria-label="Exit immersive mode" title="Exit immersive mode (H)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg></button></span></div>
   </div>
 </div>
 
@@ -656,7 +665,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
   <label class="txlab" for="txIn">Your meaning</label>
   <input id="txIn" type="text" autocomplete="off" spellcheck="false" enterkeyhint="done" placeholder="Write what it means to you">
   <div class="txlab">Color</div>
-  <div class="txdots" id="txDots" role="group" aria-label="Color"><button type="button" data-c="g" aria-label="Green" aria-pressed="false" style="background:rgb(93 202 165)"></button><button type="button" data-c="b" aria-label="Blue" aria-pressed="false" style="background:rgb(133 183 235)"></button><button type="button" data-c="a" aria-label="Amber" aria-pressed="false" style="background:rgb(239 159 39)"></button><button type="button" data-c="p" aria-label="Pink" aria-pressed="false" style="background:rgb(237 147 177)"></button><button type="button" data-c="v" aria-label="Purple" aria-pressed="false" style="background:rgb(175 169 236)"></button></div>
+  <div class="txdots" id="txDots" role="group" aria-label="Color"><button type="button" data-c="coral" aria-label="Don't know it yet" aria-pressed="false" style="background:rgb(255 123 107)"></button><button type="button" data-c="miel" aria-label="Sort of" aria-pressed="false" style="background:rgb(246 185 59)"></button><button type="button" data-c="menta" aria-label="Got it" aria-pressed="false" style="background:rgb(45 204 154)"></button><button type="button" data-c="cielo" aria-label="Sky" aria-pressed="false" style="background:rgb(93 173 236)"></button><button type="button" data-c="lavanda" aria-label="Lavender" aria-pressed="false" style="background:rgb(166 140 242)"></button></div><div class="txdname" id="txDName"></div>
   <div class="txrow">
     <span class="txacts">
       <button class="iconbtn" id="txHear" type="button" aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
@@ -714,7 +723,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.20.4';
+const VERSION='2.21.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1260,7 +1269,7 @@ function openDoc(id){
   const d=findDoc(id);if(!d)return;
   stopAudio();
   const page=$('page');page.textContent='';
-  P.doc=d;P.segs=[];P.cur=-1;P.loaded=-1;if(typeof VOC!=='undefined')VOC.bySeg.clear();JUMP.back=[];JUMP.fwd=[];$('jump').hidden=true;
+  P.doc=d;P.segs=[];P.cur=-1;P.loaded=-1;if(typeof VOC!=='undefined')VOC.bySeg.clear();if(typeof trSync==='function')trSync();JUMP.back=[];JUMP.fwd=[];$('jump').hidden=true;
   let list=null;
   buildBlocks(d).forEach(b=>{
     let node;
@@ -1350,9 +1359,10 @@ function setWord(k){
   /* with CC on, the text fades word by word so you can see where the voice is */
   if(settings.cc||seg.wpast){for(let j=0;j<seg.spans.length;j++)seg.spans[j].classList.toggle('past',!!settings.cc&&j<k);seg.gaps.forEach(g=>g.classList.toggle('past',!!settings.cc&&+g.dataset.at<=k))}
   seg.wpast=!!settings.cc;
-  if(!sp)return;
+  if(!sp){autoTip();return}
   sp.classList.add('on');if(sn)sn.classList.add('on');
   if(settings.cc)ccShow(seg,k);
+  autoTip();
   if(settings.autoflow&&!audio.paused){
     const r=sp.getBoundingClientRect(),barH=$('bar').offsetHeight||120;
     if(r.top<70||r.bottom>window.innerHeight-barH-30)sp.scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
@@ -1400,7 +1410,7 @@ function ccCloseSync(){
   $('ccClose').style.display=settings.imm&&!ballCC?'':'none';
 }
 function applyCC(){
-  ccCloseSync();
+  ccCloseSync();autoPlaceSoon();
   const on=!!settings.cc,f=ccFocus();
   $('cc').hidden=!on||f;$('focus').hidden=!f||view!=='reader';
   document.body.classList.toggle('ccon',on);document.body.classList.toggle('focuson',f);
@@ -1408,7 +1418,7 @@ function applyCC(){
   ['ccText','fCur'].forEach(id=>{if(!on||(id==='fCur')!==f)$(id).textContent=''});
   if(on){P.ccKey=null;const seg=P.segs[P.loaded];if(seg&&seg.words&&P.cur>=0)ccShow(seg,P.cur);else ccIdle()}
 }
-function clearWord(){$('page').querySelectorAll('.w.on,.sent.on').forEach(x=>x.classList.remove('on'));P.cur=-1;P.sent=null}
+function clearWord(){$('page').querySelectorAll('.w.on,.sent.on').forEach(x=>x.classList.remove('on'));P.cur=-1;P.sent=null;if(typeof autoTip==='function')autoTip()}
 function tick(){
   const seg=P.segs[P.loaded];
   if(seg&&seg.words&&!P.busy&&!P.finished){
@@ -1900,6 +1910,7 @@ const BI={
   cornersIn:SVG('<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>'),
   repeat:SVG('<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>'),
   focus:SVG('<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>'),
+  meanings:SVG('<path d="M4 5h7"/><path d="M9 3v2c0 4.4-2.2 8-5 8"/><path d="M5 9c0 2.1 2.9 3.9 6.7 4"/><path d="M12 20l4-9 4 9"/><path d="M19.1 18h-6.2"/>'),
   options:SVG('<path d="M3 18l5-12 5 12"/><path d="M4.7 14h6.6"/><path d="M14.5 18l3.5-8 3.5 8"/><path d="M15.6 15.5h4.8"/>'),
   more:SVG('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>'),
   x:SVG('<path d="M18 6L6 18"/><path d="M6 6l12 12"/>')
@@ -1930,7 +1941,7 @@ function ballSize(){return 56*(settings.ball.size||1)}
 /* Never leave the reader without a way back to the bars or the menu. */
 function tapAction(){const B=settings.ball,g=[B.tap,B.dbl,B.long];return g.includes('menu')||g.includes('bars')?B.tap:'menu'}
 function setImm(on){
-  settings.imm=!!on;saveSettings();closeFan();applyTheme();ballSync();ccCloseSync();
+  settings.imm=!!on;saveSettings();closeFan();applyTheme();ballSync();ccCloseSync();autoPlaceSoon();
   if(on&&!settings.ballTip&&view==='reader'){settings.ballTip=true;saveSettings();ballTip(tapAction()==='play'?'Tap to play or pause. Hold for more.':tapAction()==='menu'?'Tap the ball for controls. Drag it to move it.':'Hold the ball for more. Drag it to move it.')}
   if(view==='reader'&&P.segs.length)progress();
 }
@@ -2665,9 +2676,13 @@ function vocabSeg(i){
   VOC.bySeg.set(i,found.map(f=>Object.assign(f,{r:rangeIn(seg.el,f.s,f.e)})).filter(f=>f.r));
   paintVocab();
 }
-const VCOL=['g','b','a','p','v'];
+/* a traffic light for how well you know it, plus two colours of your own */
+const VCOL=['coral','miel','menta','cielo','lavanda'];
+const VNAME={coral:"Don't know it yet",miel:'Sort of',menta:'Got it',cielo:'Sky · yours',lavanda:'Lavender · yours'};
 const isPhrase=k=>/\s/.test(k);
-const vColor=k=>{const v=vocab[k];return v&&VCOL.includes(v.c)?v.c:(isPhrase(k)?'b':'g')};
+const vColor=k=>{const v=vocab[k];return v&&VCOL.includes(v.c)?v.c:'coral'};
+/* before the traffic light, saved meanings had other colours: if you saved it, you didn't know it yet */
+(()=>{let ch=false;Object.values(vocab).forEach(v=>{if(v&&!VCOL.includes(v.c)){v.c='coral';ch=true}});if(ch)save('lexiflow.vocab',vocab)})();
 /* One band per line a saved item covers, drawn behind the text. Redrawn after any re-layout. */
 function lineRects(range){
   const out=[];
@@ -2678,7 +2693,7 @@ function lineRects(range){
   });
   return out;
 }
-function paintVocab(){if(VOC.raf)return;VOC.raf=requestAnimationFrame(()=>{VOC.raf=0;drawVocab()})}
+function paintVocab(){if(typeof trSync==='function')trSync();if(VOC.raf)return;VOC.raf=requestAnimationFrame(()=>{VOC.raf=0;drawVocab()})}
 function drawVocab(){
   const page=$('page');let L=VOC.layer;
   if(!L||L.parentNode!==page){L=VOC.layer=document.createElement('div');L.className='vlayer';L.setAttribute('aria-hidden','true');page.prepend(L)}
@@ -2784,7 +2799,7 @@ function txOpen(){
   TX.was=!!P.playing;if(P.playing)pauseAudio();
   const saved=vocab[TX.key];
   $('txSel').textContent=text;$('txIn').value=saved?saved.m:'';$('txDel').hidden=!saved;
-  TX.c=saved?vColor(TX.key):(isPhrase(TX.key)?'b':'g');paintDots();
+  TX.c=saved?vColor(TX.key):'coral';paintDots();
   $('txPop').hidden=false;TX.open=true;txPlace();
   loadSuggestions(text,TX.run);
 }
@@ -2811,7 +2826,7 @@ $('txSave').addEventListener('click',()=>{
   if(m)vocab[TX.key]={t:TX.text,m,c:TX.c,at:Date.now()};else delete vocab[TX.key];
   save('lexiflow.vocab',vocab);txClose();vocabRefresh();
 });
-function paintDots(){$('txDots').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===TX.c)))}
+function paintDots(){$('txDots').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===TX.c)));$('txDName').textContent=VNAME[TX.c]||''}
 $('txDots').addEventListener('click',e=>{const b=e.target.closest('button[data-c]');if(!b)return;TX.c=b.dataset.c;paintDots()});
 $('txIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('txSave').click()}});
 $('txDel').addEventListener('click',()=>{delete vocab[TX.key];save('lexiflow.vocab',vocab);txClose();vocabRefresh()});
@@ -2825,15 +2840,79 @@ $('txHear').addEventListener('click',async()=>{
 document.addEventListener('pointerdown',e=>{if(TX.open&&!e.target.closest('#txPop'))txClose()},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&TX.open){e.stopImmediatePropagation();txClose()}},true);
 if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(TX.open)txPlace()});
-/* tapping a saved word: it still jumps there, and its meaning shows for a moment */
+/* One box for meanings, whether you tap or the voice passes by: a row for each saved item,
+   the words wearing the same marker as in the text, then what they mean to you. */
+const vOrder=(a,b)=>a.s-b.s||(b.e-b.s)-(a.e-a.s);
+function tipFill(list){
+  const tip=$('vTip');tip.textContent='';
+  list.forEach(f=>{const v=vocab[f.k];if(!v)return;
+    const row=el('div','vrow'),t=el('span','vterm'),m=el('i','vb-'+vColor(f.k)+(isPhrase(f.k)?' p1':' w1'));
+    t.appendChild(m);t.appendChild(document.createTextNode(v.t||f.k));
+    row.appendChild(t);row.appendChild(el('span','vmean',v.m));tip.appendChild(row)});
+  tip.hidden=!tip.firstChild;return !tip.hidden;
+}
+/* above the line, never on it; below only when there's no room above */
+function tipPlace(r){
+  const tip=$('vTip');if(tip.hidden||!r)return;
+  const w=tip.offsetWidth,h=tip.offsetHeight;
+  tip.style.left=Math.round(Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2)))+'px';
+  tip.style.top=Math.round(r.top-h-8>8?r.top-h-8:r.bottom+8)+'px';
+}
+const TIP={man:0,rows:[],seen:new Map(),t:0};
+/* tapping a saved word: it still jumps there, and what's saved right there shows for a moment */
 function vocabTip(e){
   const h=hitAt(e.clientX,e.clientY);if(!h)return;
-  const v=vocabAt(h.i,h.off);if(!v||!vocab[v.k])return;
-  const tip=$('vTip'),r=v.r.getBoundingClientRect();
-  tip.textContent=vocab[v.k].m;tip.hidden=false;
-  const w=tip.offsetWidth;tip.style.left=Math.round(Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2)))+'px';
-  tip.style.top=Math.round(r.top>50?r.top-tip.offsetHeight-6:r.bottom+6)+'px';
-  clearTimeout(TX.tipT);TX.tipT=setTimeout(()=>{tip.hidden=true},2800);
+  const here=(VOC.bySeg.get(h.i)||[]).filter(f=>h.off>=f.s&&h.off<f.e&&vocab[f.k]);if(!here.length)return;
+  here.sort(vOrder);const v=vocabAt(h.i,h.off)||here[0];
+  if(!tipFill(here.slice(0,3)))return;
+  tipPlace(v.r.getBoundingClientRect());
+  TIP.man=Date.now()+2800;clearTimeout(TX.tipT);TX.tipT=setTimeout(()=>{TIP.man=0;$('vTip').hidden=true;autoTip()},2800);
+}
+/* Meanings as you listen (the eye): when the voice enters something you saved, its meaning shows by itself.
+   Rows come in as the voice reaches each item and leave once it has moved on (kept at least 1.5 s),
+   in a fixed order so nothing jumps. "Got it" (mint) stays quiet. */
+const TIP_MIN=1500,TIP_MAX=3;
+function curWordEl(){
+  const k=P.cur;if(k<0)return null;
+  if(settings.cc){const sp=P.ccMap&&P.ccMap[k];if(sp&&sp.offsetParent)return sp}
+  const seg=P.segs[P.loaded];return seg&&seg.spans?seg.spans[k]:null;
+}
+function autoTip(){
+  clearTimeout(TIP.t);
+  const tip=$('vTip');
+  if(!settings.autoTip||TX.open||view!=='reader'){if(TIP.rows.length&&!TIP.man){TIP.rows=[];tip.hidden=true}TIP.seen.clear();return}
+  const seg=P.segs[P.loaded],w=seg&&seg.words&&seg.words[P.cur],now=Date.now();
+  const act=w?(VOC.bySeg.get(P.loaded)||[]).filter(f=>f.s<w.e&&w.s<f.e&&vocab[f.k]&&vColor(f.k)!=='menta'):[];
+  const ids=new Set(act.map(f=>P.loaded+':'+f.s+':'+f.k));
+  act.forEach(f=>{const id=P.loaded+':'+f.s+':'+f.k;if(!TIP.seen.has(id))TIP.seen.set(id,{f,at:now})});
+  let next=1e9;
+  TIP.seen.forEach((o,id)=>{if(ids.has(id))return;const left=o.at+TIP_MIN-now;if(left<=0)TIP.seen.delete(id);else next=Math.min(next,left)});
+  let rows=[...TIP.seen.values()].map(o=>o.f);
+  if(rows.length>TIP_MAX)rows=rows.sort((a,b)=>(a.e-a.s)-(b.e-b.s)).slice(0,TIP_MAX);
+  rows.sort(vOrder);TIP.rows=rows;
+  if(next<1e9)TIP.t=setTimeout(autoTip,next+20);
+  if(TIP.man>now)return;
+  if(!rows.length){tip.hidden=true;return}
+  tipFill(rows);autoPlace();
+}
+function autoPlace(){
+  if(!TIP.rows.length||TIP.man>Date.now())return;
+  const sp=curWordEl();
+  if(!sp||!sp.getClientRects().length){$('vTip').hidden=true;return}
+  const r=sp.getBoundingClientRect();
+  if(r.bottom<0||r.top>innerHeight){$('vTip').hidden=true;return}
+  $('vTip').hidden=false;tipPlace(r);
+}
+var tipRaf=0;function autoPlaceSoon(){if(typeof TIP==='undefined'||!TIP.rows.length||tipRaf)return;tipRaf=requestAnimationFrame(()=>{tipRaf=0;requestAnimationFrame(autoPlace)})}
+window.addEventListener('scroll',autoPlaceSoon,{passive:true,capture:true});
+window.addEventListener('resize',autoPlaceSoon);
+function setAutoTip(on){settings.autoTip=!!on;saveSettings();trSync();TIP.seen.clear();autoTip();
+  const t=on?'Meanings show as you listen':'Meanings show when you tap';note(t);setTimeout(()=>{if($('note').textContent===t)note('')},3000)}
+/* The button shows only when this reading has something you're still learning; otherwise there is nothing to show. */
+const tipWorth=()=>[...VOC.bySeg.values()].some(a=>a.some(f=>vocab[f.k]&&vColor(f.k)!=='menta'));
+function trSync(){
+  const show=tipWorth(),on=!!settings.autoTip,l=on?'Meanings show as you listen':'Meanings show when you tap';
+  ['trBtn','trFoot'].forEach(id=>{const b=$(id);if(!b)return;b.hidden=!show;b.setAttribute('aria-pressed',String(on));b.setAttribute('aria-label',l);b.title=l;if(!b.firstChild)b.innerHTML=BI.meanings});
 }
 /* settings */
 function txmsg(t,kind){const m=$('txMsg');m.textContent=t;m.className='msg'+(kind?' '+kind:'')}
@@ -3015,6 +3094,7 @@ function readerFanList(){
 paintReaderBtn();
 $('rate').addEventListener('click',openSheet);
 $('aaBtn').addEventListener('click',openSheet);
+['trBtn','trFoot'].forEach(id=>$(id).addEventListener('click',()=>setAutoTip(!settings.autoTip)));trSync();
 $('scrim').addEventListener('click',closeSheet);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('sheet').hidden)closeSheet()});
 function setFs(v){settings.fs=Math.round(Math.min(1.6,Math.max(0.8,v))*100)/100;applyTheme();saveSettings();paintSheet()}
@@ -3030,7 +3110,7 @@ renderHome();show('home');takeShare();
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
-window.__lexi={renderSeg,P,audio,settings,azure,docs:()=>docs,getAudio,idbStats,vocab:()=>vocab,SEL,TX};
+window.__lexi={renderSeg,P,audio,settings,azure,docs:()=>docs,getAudio,idbStats,vocab:()=>vocab,SEL,TX,TIP,autoTip,setWord,setImm};
 })();
 </script>
 </body>
