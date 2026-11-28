@@ -696,7 +696,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.20.0';
+const VERSION='2.20.1';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1209,7 +1209,8 @@ function renderSeg(i){
   const words=seg.words||[];let k=0,pos=0;
   seg.sents.forEach((r,si)=>{
     if(r.s>pos)node.appendChild(document.createTextNode(text.slice(pos,r.s)));
-    const sn=el('span','sent');let p=r.s;
+    /* a word can run past the end of its sentence (a closing quote): the next one starts after it */
+    const sn=el('span','sent');let p=Math.max(r.s,pos);
     while(k<words.length&&words[k].s<r.e){
       const w=words[k];
       /* Azure's word timings can overlap (around quotes): never write a letter twice */
