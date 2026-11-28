@@ -190,7 +190,22 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 /* Meanings: hold a word (or hold and drag across a phrase), write what it means to you */
 #page{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 ::highlight(lxpick){background-color:hsl(var(--hh) 70% 60% / .32)}
-::highlight(lxvocab){text-decoration:underline dotted 2px;text-decoration-color:var(--ok);text-underline-offset:4px}
+/* saved meanings: a marker band behind the lower part of the letters, one colour each */
+#page{position:relative;isolation:isolate}
+.vlayer{position:absolute;inset:0;pointer-events:none;z-index:2;mix-blend-mode:multiply}
+/* like a real marker: on light paper it multiplies (text stays dark), on dark it lightens */
+:root[data-theme="dark"] .vlayer{mix-blend-mode:screen}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]):not([data-theme="sepia"]) .vlayer{mix-blend-mode:screen}}
+.vb{position:absolute;border-radius:3px}
+.vb-g{background:rgb(93 202 165 / .42)}.vb-g.w1{background:rgb(93 202 165 / .8)}
+.vb-b{background:rgb(133 183 235 / .42)}.vb-b.w1{background:rgb(133 183 235 / .8)}
+.vb-a{background:rgb(239 159 39 / .42)}.vb-a.w1{background:rgb(239 159 39 / .8)}
+.vb-p{background:rgb(237 147 177 / .42)}.vb-p.w1{background:rgb(237 147 177 / .8)}
+.vb-v{background:rgb(175 169 236 / .42)}.vb-v.w1{background:rgb(175 169 236 / .8)}
+.txdots{display:flex;gap:12px;margin:2px 0 2px}
+.txdots button{width:28px;height:28px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line);padding:0}
+.txdots button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--text)}
+
 .txpop{position:fixed;z-index:30;left:12px;right:12px;max-width:440px;margin:0 auto;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .txsel{font-family:var(--read);font-weight:600;font-size:15px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .txlab{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
@@ -622,6 +637,8 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
   <div class="txsug" id="txSug"></div>
   <label class="txlab" for="txIn">Your meaning</label>
   <input id="txIn" type="text" autocomplete="off" spellcheck="false" enterkeyhint="done" placeholder="Write what it means to you">
+  <div class="txlab">Color</div>
+  <div class="txdots" id="txDots" role="group" aria-label="Color"><button type="button" data-c="g" aria-label="Green" aria-pressed="false" style="background:rgb(93 202 165)"></button><button type="button" data-c="b" aria-label="Blue" aria-pressed="false" style="background:rgb(133 183 235)"></button><button type="button" data-c="a" aria-label="Amber" aria-pressed="false" style="background:rgb(239 159 39)"></button><button type="button" data-c="p" aria-label="Pink" aria-pressed="false" style="background:rgb(237 147 177)"></button><button type="button" data-c="v" aria-label="Purple" aria-pressed="false" style="background:rgb(175 169 236)"></button></div>
   <div class="txrow">
     <span class="txacts">
       <button class="iconbtn" id="txHear" type="button" aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
@@ -679,7 +696,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.19.1';
+const VERSION='2.20.0';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -2616,10 +2633,37 @@ function vocabSeg(i){
   VOC.bySeg.set(i,found.map(f=>Object.assign(f,{r:rangeIn(seg.el,f.s,f.e)})).filter(f=>f.r));
   paintVocab();
 }
-function paintVocab(){
-  if(!hlOK)return;const all=[];VOC.bySeg.forEach(a=>a.forEach(f=>all.push(f.r)));
-  CSS.highlights.set('lxvocab',new Highlight(...all));
+const VCOL=['g','b','a','p','v'];
+const isPhrase=k=>/\s/.test(k);
+const vColor=k=>{const v=vocab[k];return v&&VCOL.includes(v.c)?v.c:(isPhrase(k)?'b':'g')};
+/* One band per line a saved item covers, drawn behind the text. Redrawn after any re-layout. */
+function lineRects(range){
+  const out=[];
+  [...range.getClientRects()].filter(r=>r.width>0&&r.height>0).forEach(r=>{
+    const m=(r.top+r.bottom)/2,l=out.find(o=>Math.abs((o.top+o.bottom)/2-m)<Math.min(o.bottom-o.top,r.height)/2);
+    if(l){l.left=Math.min(l.left,r.left);l.right=Math.max(l.right,r.right);l.top=Math.min(l.top,r.top);l.bottom=Math.max(l.bottom,r.bottom)}
+    else out.push({left:r.left,right:r.right,top:r.top,bottom:r.bottom});
+  });
+  return out;
 }
+function paintVocab(){if(VOC.raf)return;VOC.raf=requestAnimationFrame(()=>{VOC.raf=0;drawVocab()})}
+function drawVocab(){
+  const page=$('page');let L=VOC.layer;
+  if(!L||L.parentNode!==page){L=VOC.layer=document.createElement('div');L.className='vlayer';L.setAttribute('aria-hidden','true');page.prepend(L)}
+  const pr=page.getBoundingClientRect(),items=[];VOC.bySeg.forEach(a=>a.forEach(f=>items.push(f)));
+  /* phrases first, so a saved word sits on top of a saved phrase around it */
+  items.sort((a,b)=>isPhrase(b.k)-isPhrase(a.k));
+  const frag=document.createDocumentFragment();
+  items.forEach((f,o)=>{const ph=isPhrase(f.k),c=vColor(f.k);
+    lineRects(f.r).forEach(r=>{const h=r.bottom-r.top,d=document.createElement('i');
+      d.className='vb vb-'+c+(ph?' p1':' w1');d.dataset.o=String(o);d.dataset.g=c+(ph?'-p':'-w');
+      d.style.cssText='left:'+(r.left-pr.left-1).toFixed(1)+'px;top:'+(r.bottom-pr.top-h*.44).toFixed(1)+'px;width:'+(r.right-r.left+2).toFixed(1)+'px;height:'+(h*.34).toFixed(1)+'px';
+      frag.appendChild(d)})});
+  L.replaceChildren(frag);
+}
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>{if(VOC.bySeg.size)paintVocab()}).observe($('page'));
+/* where saved items overlap, the shortest one (usually the most specific) answers */
+const vocabAt=(i,off)=>(VOC.bySeg.get(i)||[]).filter(f=>off>=f.s&&off<f.e).sort((a,b)=>(a.e-a.s)-(b.e-b.s))[0];
 function vocabRefresh(){P.segs.forEach((_,i)=>vocabSeg(i))}
 /* point → position in a part of the text */
 function caretAt(x,y){
@@ -2652,13 +2696,15 @@ function selClear(){SEL.on=false;SEL.a=SEL.b=null;SEL.range=null;if(hlOK)CSS.hig
 function selStart(x,y){
   const h=hitAt(x,y);if(!h)return false;
   let w=wordAround(h.text,h.off);if(!w)return false;
-  /* holding a saved word or phrase picks all of it */
-  const v=(VOC.bySeg.get(h.i)||[]).find(f=>h.off>=f.s&&h.off<f.e);if(v)w={s:v.s,e:v.e};
+  /* holding a saved word or phrase picks all of it; moving the finger frees the selection */
+  SEL.w0=w;SEL.free=false;
+  const v=vocabAt(h.i,h.off);if(v)w={s:v.s,e:v.e};
   SEL.on=true;SEL.i=h.i;SEL.a=w;SEL.b=w;selPaint();
   if(navigator.vibrate)try{navigator.vibrate(12)}catch(e){}
   txClose(true);return true;
 }
 function selMove(x,y){
+  if(!SEL.free){if(Math.hypot(x-SEL.x,y-SEL.y)<6)return;SEL.free=true;SEL.a=SEL.w0}
   const h=hitAt(x,y);if(!h||h.i!==SEL.i)return;
   const w=wordAround(h.text,h.off);if(w){SEL.b=w;selPaint()}
 }
@@ -2701,6 +2747,7 @@ function txOpen(){
   TX.was=!!P.playing;if(P.playing)pauseAudio();
   const saved=vocab[TX.key];
   $('txSel').textContent=text;$('txIn').value=saved?saved.m:'';$('txDel').hidden=!saved;
+  TX.c=saved?vColor(TX.key):(isPhrase(TX.key)?'b':'g');paintDots();
   $('txPop').hidden=false;TX.open=true;txPlace();
   loadSuggestions(text,TX.run);
 }
@@ -2724,9 +2771,11 @@ function txClose(quiet){
 }
 $('txSave').addEventListener('click',()=>{
   const m=$('txIn').value.trim();
-  if(m)vocab[TX.key]={t:TX.text,m,at:Date.now()};else delete vocab[TX.key];
+  if(m)vocab[TX.key]={t:TX.text,m,c:TX.c,at:Date.now()};else delete vocab[TX.key];
   save('lexiflow.vocab',vocab);txClose();vocabRefresh();
 });
+function paintDots(){$('txDots').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===TX.c)))}
+$('txDots').addEventListener('click',e=>{const b=e.target.closest('button[data-c]');if(!b)return;TX.c=b.dataset.c;paintDots()});
 $('txIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('txSave').click()}});
 $('txDel').addEventListener('click',()=>{delete vocab[TX.key];save('lexiflow.vocab',vocab);txClose();vocabRefresh()});
 $('txCopy').addEventListener('click',()=>{try{navigator.clipboard.writeText(TX.text)}catch(e){}});
@@ -2742,7 +2791,7 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(TX.ope
 /* tapping a saved word: it still jumps there, and its meaning shows for a moment */
 function vocabTip(e){
   const h=hitAt(e.clientX,e.clientY);if(!h)return;
-  const v=(VOC.bySeg.get(h.i)||[]).find(f=>h.off>=f.s&&h.off<f.e);if(!v||!vocab[v.k])return;
+  const v=vocabAt(h.i,h.off);if(!v||!vocab[v.k])return;
   const tip=$('vTip'),r=v.r.getBoundingClientRect();
   tip.textContent=vocab[v.k].m;tip.hidden=false;
   const w=tip.offsetWidth;tip.style.left=Math.round(Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2)))+'px';
