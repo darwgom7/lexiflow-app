@@ -188,7 +188,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 .th.light{background:#F6F6F4;color:#1C1C1C}.th.sepia{background:#F4ECD8;color:#3B3226}.th.dark{background:#111;color:#F2F2F2}
 @media (prefers-reduced-motion:reduce){.sheet,.scrim{transition:none}}
 /* Meanings: hold a word (or hold and drag across a phrase), write what it means to you */
-#page{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#page,#fCur,#ccText{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 ::highlight(lxpick){background-color:hsl(var(--hh) 70% 60% / .32)}
 /* saved meanings: a marker band behind the lower part of the letters, one colour each */
 #page{position:relative;isolation:isolate}
@@ -696,7 +696,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.20.1';
+const VERSION='2.20.2';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1353,6 +1353,7 @@ function ccRender(seg,si,idx){
   if(ccFocus())ccNeighbors(at<0?P.i:at,si);
   const outer=box;const inner=el('span','ccsent');outer.appendChild(inner);
   const r=seg.sents[si];if(!r)return;
+  inner.dataset.i=String(at<0?P.i:at);inner.dataset.base=String(r.s);
   let p=r.s;
   (seg.words||[]).forEach((w,k)=>{
     if(seg.wsent[k]!==si)return;
@@ -1605,6 +1606,7 @@ $('focusExit').addEventListener('click',()=>{settings.ccMode='band';saveSettings
 $('immExit').addEventListener('click',()=>setImm(false));
 $('ccClose').addEventListener('click',()=>{settings.cc=false;saveSettings();applyCC()});
 $('fCur').addEventListener('click',e=>{
+  if(SEL.eatClick){SEL.eatClick=false;return}
   const w=e.target.closest('.w');if(!w)return;
   const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
   const ms=seg.words[+w.dataset.k].ms;noteJump(posNow(),{i:P.loaded,ms});
@@ -1612,6 +1614,7 @@ $('fCur').addEventListener('click',e=>{
   if(!P.playing)play();else tick();
 });
 $('cc').addEventListener('click',e=>{
+  if(SEL.eatClick){SEL.eatClick=false;return}
   const w=e.target.closest('.w');if(!w)return;
   const seg=P.segs[P.loaded];if(!seg||!seg.words)return;
   const ms=seg.words[+w.dataset.k].ms;noteJump(posNow(),{i:P.loaded,ms});
@@ -2672,11 +2675,16 @@ function caretAt(x,y){
   if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(r)return {node:r.startContainer,off:r.startOffset}}
   return null;
 }
+/* the text can be held in the page, the caption card or the big subtitle */
 function hitAt(x,y){
-  const elx=document.elementFromPoint(x,y),segEl=elx&&elx.closest&&elx.closest('#page .seg');if(!segEl)return null;
-  const c=caretAt(x,y);if(!c||!segEl.contains(c.node))return null;
-  const i=+segEl.dataset.i,off=offsetIn(segEl,c.node,c.off);if(off<0)return null;
-  return {i,off,segEl,text:P.segs[i].text};
+  const elx=document.elementFromPoint(x,y);if(!elx||!elx.closest)return null;
+  let root=elx.closest('#page .seg'),base=0;
+  if(!root){root=elx.closest('#fCur .ccsent,#ccText .ccsent');if(root)base=+root.dataset.base||0}
+  if(!root)return null;
+  const c=caretAt(x,y);if(!c||!root.contains(c.node))return null;
+  const i=+root.dataset.i,seg=P.segs[i];if(!seg)return null;
+  const o=offsetIn(root,c.node,c.off);if(o<0)return null;
+  return {i,off:base+o,root,base,text:seg.text};
 }
 const isW=ch=>/[\p{L}\p{N}'’-]/u.test(ch||'');
 function wordAround(text,off){
@@ -2690,7 +2698,7 @@ const SEL={t:0,on:false,i:-1,a:null,b:null,x:0,y:0,eatClick:false,src:null};
 function selPaint(){
   const seg=P.segs[SEL.i];if(!seg||!SEL.a)return;
   const s=Math.min(SEL.a.s,SEL.b.s),e=Math.max(SEL.a.e,SEL.b.e);SEL.s=s;SEL.e=e;
-  SEL.range=rangeIn(seg.el,s,e);
+  SEL.range=rangeIn(SEL.root||seg.el,s-(SEL.base||0),e-(SEL.base||0));
   if(hlOK&&SEL.range)CSS.highlights.set('lxpick',new Highlight(SEL.range));
 }
 function selClear(){SEL.on=false;SEL.a=SEL.b=null;SEL.range=null;if(hlOK)CSS.highlights.delete('lxpick')}
@@ -2700,13 +2708,13 @@ function selStart(x,y){
   /* holding a saved word or phrase picks all of it; moving the finger frees the selection */
   SEL.w0=w;SEL.free=false;
   const v=vocabAt(h.i,h.off);if(v)w={s:v.s,e:v.e};
-  SEL.on=true;SEL.i=h.i;SEL.a=w;SEL.b=w;selPaint();
+  SEL.on=true;SEL.i=h.i;SEL.root=h.root;SEL.base=h.base;SEL.a=w;SEL.b=w;selPaint();
   if(navigator.vibrate)try{navigator.vibrate(12)}catch(e){}
   txClose(true);return true;
 }
 function selMove(x,y){
   if(!SEL.free){if(Math.hypot(x-SEL.x,y-SEL.y)<6)return;SEL.free=true;SEL.a=SEL.w0}
-  const h=hitAt(x,y);if(!h||h.i!==SEL.i)return;
+  const h=hitAt(x,y);if(!h||h.root!==SEL.root)return;
   const w=wordAround(h.text,h.off);if(w){SEL.b=w;selPaint()}
 }
 function selEnd(){if(!SEL.on)return;SEL.on=false;SEL.eatClick=true;setTimeout(()=>{SEL.eatClick=false},400);txOpen()}
@@ -2720,16 +2728,16 @@ function holdMove(x,y,e){
   if(SEL.t&&Math.hypot(x-SEL.x,y-SEL.y)>10){clearTimeout(SEL.t);SEL.t=0}
 }
 function holdUp(){clearTimeout(SEL.t);SEL.t=0;if(SEL.on)selEnd()}
-const pg=$('page');
-pg.addEventListener('touchstart',e=>{if(e.touches.length!==1){clearTimeout(SEL.t);return}const t=e.touches[0];holdDown(t.clientX,t.clientY,'touch')},{passive:true});
+[$('page'),$('fCur'),$('ccText')].forEach(pg=>{
+pg.addEventListener('touchstart',e=>{SEL.tt=Date.now();if(e.touches.length!==1){clearTimeout(SEL.t);return}const t=e.touches[0];holdDown(t.clientX,t.clientY,'touch')},{passive:true});
 pg.addEventListener('touchmove',e=>{const t=e.touches[0];if(t)holdMove(t.clientX,t.clientY,e)},{passive:false});
 pg.addEventListener('touchend',e=>{if(SEL.on&&e.cancelable)e.preventDefault();holdUp()});
 pg.addEventListener('touchcancel',()=>{clearTimeout(SEL.t);if(SEL.on)holdUp()});
 pg.addEventListener('mousedown',e=>{if(e.button||SEL.src==='touch'&&Date.now()-SEL.tt<800)return;holdDown(e.clientX,e.clientY,'mouse')});
-pg.addEventListener('touchstart',()=>{SEL.tt=Date.now()},{passive:true});
+pg.addEventListener('contextmenu',e=>e.preventDefault());
+});
 document.addEventListener('mousemove',e=>{if(SEL.src==='mouse'&&(SEL.t||SEL.on))holdMove(e.clientX,e.clientY,e)});
 document.addEventListener('mouseup',()=>{if(SEL.src==='mouse')holdUp()});
-pg.addEventListener('contextmenu',e=>e.preventDefault());
 /* the popup */
 const TX={open:false,was:false,text:'',key:'',run:0};
 function txPlace(){
