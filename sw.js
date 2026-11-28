@@ -1,6 +1,6 @@
 /* LexiFlow service worker: keeps the app itself available offline.
    Saved audio lives in IndexedDB, not here. Bump VERSION on every release. */
-const VERSION = 'lexiflow-2.20.3';
+const VERSION = 'lexiflow-2.20.4';
 const SHARE = 'lexiflow-share';
 const SHELL = ['./', './index.html', './speech-sdk.js', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './icon-maskable.png', './apple-touch-icon.png'];

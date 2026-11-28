@@ -125,6 +125,8 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
 .bar .in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 .ctl{display:flex;align-items:center;gap:10px}
+.ctl .icon,.ctl .playbtn,.ctl .ccbtn{flex:none}
+.speedchip .xdot{display:none;width:6px;height:6px;border-radius:50%;background:currentColor;margin-left:6px;vertical-align:middle}
 .playbtn{position:relative;width:56px;height:56px;border-radius:50%;border:0;background:none;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,.18);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .playbtn .psph{position:absolute;inset:0;border-radius:50%;will-change:transform}
 .playbtn svg.psv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
@@ -136,6 +138,8 @@ body.fade .seg.past,body.fade .sent.past{color:var(--muted);transition:color .2s
 .playbtn svg{width:24px;height:24px}
 .ctl .icon{width:48px;height:48px;border-radius:50%;padding:0}
 #repBtn svg{width:22px;height:22px}
+@media (max-width:440px){.speedchip .xtra{display:none}.speedchip .xdot{display:inline-block}.ctl{gap:6px}.ctl .icon{width:44px;height:44px}.speedchip{padding:0 11px}}
+@media (max-width:380px){#bar{padding-left:12px;padding-right:12px}.ctl .icon{width:40px;height:40px}.ctl .ccbtn{min-width:42px;padding:0 6px}.speedchip{padding:0 9px}}
 .ctl select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:14px;font-weight:600;margin-left:auto}
 .status{font-size:13px;color:var(--muted);min-height:1.3em;margin:0}
 .status.bad{color:var(--bad);font-weight:600}
@@ -172,7 +176,7 @@ body.ccon #page .seg.past,body.ccon #page .sent.past,body.ccon #page .w.past,bod
 .fin{max-width:640px;width:100%;text-align:center;display:flex;flex-direction:column;gap:24px}
 .fside{margin:0;font-family:var(--read);font-size:calc(17px * var(--fs,1));line-height:1.5;color:var(--muted);opacity:.75}
 .fcur{margin:0;font-family:var(--read);font-size:calc(27px * var(--fs,1));line-height:1.5;color:var(--text)}
-.speedchip{height:40px;padding:0 14px;border-radius:999px;border:0;background:var(--sc);color:var(--onsc);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.speedchip{height:40px;padding:0 14px;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;border-radius:999px;border:0;background:var(--sc);color:var(--onsc);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:20;opacity:0;transition:opacity .2s ease}
 .scrim.open{opacity:1}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-height:86vh;overflow-y:auto;overscroll-behavior:contain;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:10px 20px 22px;padding-bottom:max(22px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .24s cubic-bezier(.2,.8,.2,1)}
@@ -710,7 +714,7 @@ div.field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:
 <script>
 (function(){
 'use strict';
-const VERSION='2.20.3';
+const VERSION='2.20.4';
 
 /* ================= pure logic (also loaded by the tests in Node) ================= */
 const ABBR=/(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc|No)|e\.g|i\.e)\.["”’')\]]*\s*$/;
@@ -1296,9 +1300,12 @@ function setActive(i){
   progress();
 }
 function progress(){
-  const n=P.segs.length||1;let f=P.i;
-  if(P.loaded===P.i&&audio.duration)f+=Math.min(1,audio.currentTime/audio.duration);
-  $('progFill').style.width=(f/n*100)+'%';document.body.style.setProperty('--gp',(f/n*100).toFixed(2)+'%');
+  /* each part weighs what its text weighs, so a short first part does not count as half the reading */
+  const lens=P.segs.map(s=>Math.max(1,(s.text||'').length)),tot=lens.reduce((a,b)=>a+b,0)||1;
+  let done=lens.slice(0,P.i).reduce((a,b)=>a+b,0);
+  if(P.loaded===P.i&&audio.duration)done+=(lens[P.i]||0)*Math.min(1,audio.currentTime/audio.duration);
+  const n=1,f=done/tot;
+  $('progFill').style.width=(f*100)+'%';document.body.style.setProperty('--gp',(f*100).toFixed(2)+'%');
   const left=timeLeft(),txt='Part '+(P.i+1)+' of '+P.segs.length+(left?' · '+left:'');
   if(txt!==P.leftShown){P.leftShown=txt;$('progText').textContent=txt;$('footLeft').textContent=left||'';$('footPart').textContent='Part '+(P.i+1)+' of '+P.segs.length}
   const pc=Math.round(f/n*100)+'%';if(pc!==P.pctShown){P.pctShown=pc;$('footPct').textContent=pc}
@@ -2883,7 +2890,10 @@ function setRate(r){settings.rate=r;audio.playbackRate=r;saveSettings();paintShe
 function paintSheet(){
   paintReaderRow();
   if(view==='reader'&&P.segs.length)progress();
-  $('rate').textContent=fmtRate(settings.rate)+((settings.rep??1)!==1?' · '+((settings.rep??1)===0?'∞':settings.rep+'×'):'')+((settings.gap||'off')!=='off'?' · ⏸':'');
+  const xt=((settings.rep??1)!==1?' · '+((settings.rep??1)===0?'∞':settings.rep+'×'):'')+((settings.gap||'off')!=='off'?' · ⏸':'');
+  /* on a phone only the speed fits; a dot says repeats or pauses are on (the sheet has the details) */
+  $('rate').innerHTML='';$('rate').append(fmtRate(settings.rate));
+  if(xt){const x=el('span','xtra',xt),d=el('span','xdot');$('rate').append(x,d)}
   $('fsVal').textContent=Math.round((settings.fs||1)*100)+'%';
   document.querySelectorAll('#themes .th').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===settings.theme)));
   const reps=[[1,'1×'],[2,'2×'],[3,'3×'],[0,'∞']],gaps=[['off','Off'],['auto','Auto'],['2000','2 s'],['4000','4 s']];
